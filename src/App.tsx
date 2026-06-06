@@ -5,7 +5,6 @@ import Clientes from './pages/Clientes'
 import Lancamentos from './pages/Lancamentos'
 import Categorias from './pages/Categorias'
 import TipoDeConta from './pages/TipoDeConta'
-import './App.css'
 
 export default function App() {
   return (

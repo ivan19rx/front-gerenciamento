@@ -21,6 +21,12 @@ const clientes: Cliente[] = [
   { id: 6,  nome: 'Igor Ferreira',       email: 'igor@email.com',    telefone: '(61) 94444-0006', status: 'Ativo',     cadastro: '03 Mai 2024' },
   { id: 7,  nome: 'Juliana Martins',     email: 'ju@email.com',      telefone: '(71) 93333-0007', status: 'Inativo',   cadastro: '11 Jun 2024' },
   { id: 8,  nome: 'Leonardo Alves',      email: 'leo@email.com',     telefone: '(81) 92222-0008', status: 'Concluído', cadastro: '20 Jun 2024' },
+  { id: 9,  nome: 'Leonardo Alves',      email: 'leo@email.com',     telefone: '(81) 92222-0008', status: 'Concluído', cadastro: '20 Jun 2024' },
+  { id: 10,  nome: 'Leonardo Alves',      email: 'leo@email.com',     telefone: '(81) 92222-0008', status: 'Concluído', cadastro: '20 Jun 2024' },
+  { id: 11,  nome: 'Leonardo Alves',      email: 'leo@email.com',     telefone: '(81) 92222-0008', status: 'Concluído', cadastro: '20 Jun 2024' },
+  { id: 12,  nome: 'Leonardo Alves',      email: 'leo@email.com',     telefone: '(81) 92222-0008', status: 'Concluído', cadastro: '20 Jun 2024' },
+  { id: 13,  nome: 'Leonardo Alves',      email: 'leo@email.com',     telefone: '(81) 92222-0008', status: 'Concluído', cadastro: '20 Jun 2024' },
+  { id: 14,  nome: 'Leonardo Alves',      email: 'leo@email.com',     telefone: '(81) 92222-0008', status: 'Concluído', cadastro: '20 Jun 2024' },
 ]
 
 const columns: Column<Cliente>[] = [

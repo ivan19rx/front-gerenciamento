@@ -4,9 +4,9 @@ import { C } from '../theme'
 export type StatusType = 'Ativo' | 'Inativo' | 'Pendente' | 'Concluído'
 
 const STATUS_CONFIG: Record<StatusType, { color: string }> = {
-  Ativo:     { color: '#34D399' },
-  Inativo:   { color: '#F87171' },
-  Pendente:  { color: '#FBBF24' },
+  Ativo: { color: '#34D399' },
+  Inativo: { color: '#F87171' },
+  Pendente: { color: '#FBBF24' },
   Concluído: { color: '#60A5FA' },
 }
 
@@ -39,12 +39,12 @@ export function ActionButtons() {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <button
         style={{ background: 'transparent', border: `1px solid ${C.tableBorder}`, borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.activeItem}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F1F5F3'}
         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
       >
         Ver
       </button>
-      <button style={{ background: 'transparent', border: 'none', color: C.mutedIcon, cursor: 'pointer', padding: 4, borderRadius: 4, fontSize: 16, lineHeight: 1 }}>
+      <button style={{ background: 'transparent', border: 'none', color: '#9DB8AD', cursor: 'pointer', padding: 4, borderRadius: 4, fontSize: 16, lineHeight: 1 }}>
         ⋮
       </button>
     </div>
