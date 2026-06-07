@@ -8,7 +8,7 @@ import { useFetch } from '../hooks/useFetch'
 import { API_BASE_URL } from '../config'
 import { C } from '../theme'
 
-interface TipoConta {
+interface Classificacao {
   id: number
   nome: string
 }
@@ -48,7 +48,7 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
   )
 }
 
-interface TipoContaFormProps {
+interface ClassificacaoFormProps {
   form: FormState
   errors: Partial<FormState>
   submitting: boolean
@@ -58,12 +58,12 @@ interface TipoContaFormProps {
   isEdit: boolean
 }
 
-function TipoContaForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit }: TipoContaFormProps) {
+function ClassificacaoForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit }: ClassificacaoFormProps) {
   return (
     <>
       <Field label="Nome" error={errors.nome}>
         <Input
-          placeholder="Nome do tipo de conta"
+          placeholder="Nome da classificação"
           value={form.nome}
           error={!!errors.nome}
           onChange={e => onChange({ ...form, nome: (e.target as HTMLInputElement).value })}
@@ -101,22 +101,22 @@ function AddButton({ onClick }: { onClick: () => void }) {
       <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
       </svg>
-      Novo Tipo
+      Nova Classificação
     </button>
   )
 }
 
-export default function TipoDeConta() {
-  const { data, loading, error, refetch } = useFetch<TipoConta[]>('/contas')
+export default function Classificacoes() {
+  const { data, loading, error, refetch } = useFetch<Classificacao[]>('/classificacoes')
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<TipoConta | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<TipoConta | null>(null)
+  const [createOpen,   setCreateOpen]   = useState(false)
+  const [editTarget,   setEditTarget]   = useState<Classificacao | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Classificacao | null>(null)
 
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
+  const [form,       setForm]       = useState<FormState>(EMPTY_FORM)
   const [formErrors, setFormErrors] = useState<Partial<FormState>>({})
   const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting,   setDeleting]   = useState(false)
 
   const rows = data ?? []
 
@@ -126,7 +126,7 @@ export default function TipoDeConta() {
     setCreateOpen(true)
   }
 
-  function openEdit(row: TipoConta) {
+  function openEdit(row: Classificacao) {
     setForm({ nome: row.nome })
     setFormErrors({})
     setEditTarget(row)
@@ -137,7 +137,7 @@ export default function TipoDeConta() {
     if (Object.keys(errs).length) { setFormErrors(errs); return }
     setSubmitting(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/contas`, {
+      const res = await fetch(`${API_BASE_URL}/classificacoes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: form.nome.trim() }),
@@ -161,7 +161,7 @@ export default function TipoDeConta() {
     if (!editTarget) return
     setSubmitting(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/contas/${editTarget.id}`, {
+      const res = await fetch(`${API_BASE_URL}/classificacoes/${editTarget.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: form.nome.trim() }),
@@ -183,7 +183,7 @@ export default function TipoDeConta() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/contas/${deleteTarget.id}`, { method: 'DELETE' })
+      const res = await fetch(`${API_BASE_URL}/classificacoes/${deleteTarget.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error(`Erro ${res.status}`)
       setDeleteTarget(null)
       refetch()
@@ -194,39 +194,37 @@ export default function TipoDeConta() {
     }
   }
 
-  const columns: Column<TipoConta>[] = [
-    { key: 'id', label: '#', render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
+  const columns: Column<Classificacao>[] = [
+    { key: 'id',   label: '#',    render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
     { key: 'nome', label: 'Nome', render: r => <strong style={{ fontWeight: 500 }}>{r.nome}</strong> },
-    {
-      key: 'acao', label: 'Ação', render: r => (
-        <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} />
-      )
-    },
+    { key: 'acao', label: 'Ação', render: r => (
+      <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} />
+    )},
   ]
 
   return (
     <>
       <PageWrapper
-        title="Tipo de Conta"
-        subtitle={data ? `${data.length} tipo(s) encontrado(s)` : 'Tipos de contas financeiras cadastradas'}
+        title="Classificações"
+        subtitle={data ? `${data.length} classificação(ões) encontrada(s)` : 'Classificações cadastradas'}
         action={<AddButton onClick={openCreate} />}
       >
-        {loading && <LoadingState message="Carregando tipos de conta..." />}
-        {error && <ErrorState message={error} onRetry={refetch} />}
-        {!loading && !error && rows.length === 0 && <EmptyState message="Nenhum tipo de conta cadastrado." />}
-        {!loading && !error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} />}
+        {loading  && <LoadingState message="Carregando classificações..." />}
+        {error    && <ErrorState message={error} onRetry={refetch} />}
+        {!loading && !error && rows.length === 0 && <EmptyState message="Nenhuma classificação cadastrada." />}
+        {!loading && !error && rows.length > 0  && <DataTable columns={columns} rows={rows} getKey={r => r.id} />}
       </PageWrapper>
 
-      <Modal open={createOpen} title="Novo Tipo de Conta" onClose={() => setCreateOpen(false)}>
-        <TipoContaForm
+      <Modal open={createOpen} title="Nova Classificação" onClose={() => setCreateOpen(false)}>
+        <ClassificacaoForm
           form={form} errors={formErrors} submitting={submitting}
           onChange={setForm} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)}
           isEdit={false}
         />
       </Modal>
 
-      <Modal open={!!editTarget} title="Editar Tipo de Conta" onClose={() => setEditTarget(null)}>
-        <TipoContaForm
+      <Modal open={!!editTarget} title="Editar Classificação" onClose={() => setEditTarget(null)}>
+        <ClassificacaoForm
           form={form} errors={formErrors} submitting={submitting}
           onChange={setForm} onSubmit={handleEdit} onCancel={() => setEditTarget(null)}
           isEdit
@@ -235,7 +233,7 @@ export default function TipoDeConta() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Excluir tipo de conta"
+        title="Excluir classificação"
         message={`Tem certeza que deseja excluir "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Sim, excluir"
         onConfirm={handleDelete}

@@ -5,6 +5,7 @@ import Clientes from './pages/Clientes'
 import Lancamentos from './pages/Lancamentos'
 import Categorias from './pages/Categorias'
 import TipoDeConta from './pages/TipoDeConta'
+import Classificacoes from './pages/Classificacoes'
 
 export default function App() {
   return (
@@ -12,10 +13,11 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="clientes"    element={<Clientes />} />
-          <Route path="lancamentos" element={<Lancamentos />} />
-          <Route path="categorias"  element={<Categorias />} />
-          <Route path="tipodeconta" element={<TipoDeConta />} />
+          <Route path="clientes"       element={<Clientes />} />
+          <Route path="lancamentos"    element={<Lancamentos />} />
+          <Route path="categorias"     element={<Categorias />} />
+          <Route path="tipodeconta"    element={<TipoDeConta />} />
+          <Route path="classificacoes" element={<Classificacoes />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -28,7 +28,14 @@ const navItems = [
     path: '/tipodeconta',
     icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />,
   },
+  {
+    label: 'Classificações',
+    path: '/classificacoes',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />,
+  },
 ]
+
+
 
 interface SidebarProps {
   open: boolean
