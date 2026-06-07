@@ -1,4 +1,3 @@
-import { C } from '../theme'
 import { PageWrapper } from '../components/PageWrapper'
 
 const cards = [

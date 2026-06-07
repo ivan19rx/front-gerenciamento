@@ -1,4 +1,3 @@
-import { C } from '../theme'
 
 interface PageWrapperProps {
   title: string
