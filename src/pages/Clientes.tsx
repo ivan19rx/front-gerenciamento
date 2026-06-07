@@ -64,8 +64,7 @@ function SaldoCell({ valor }: { valor: string }) {
 function validate(form: FormState) {
   const errors: Partial<FormState> = {}
   if (!form.nome.trim()) errors.nome = 'Nome é obrigatório'
-  if (!form.saldo.trim()) errors.saldo = 'Saldo é obrigatório'
-  else if (isNaN(parseFloat(form.saldo))) errors.saldo = 'Saldo deve ser um número'
+  if (form.saldo.trim() && isNaN(parseFloat(form.saldo))) errors.saldo = 'Saldo deve ser um número'
   return errors
 }
 
@@ -120,7 +119,7 @@ function ClienteForm({ form, errors, submitting, onChange, onSubmit, onCancel, i
         />
       </Field>
 
-      <Field label="Saldo (R$)" error={errors.saldo}>
+      <Field label="Saldo (R$) — opcional" error={errors.saldo}>
         <Input
           placeholder="Ex: 150.00 ou -80.00"
           value={form.saldo}
