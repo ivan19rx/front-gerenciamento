@@ -117,8 +117,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
         >
-          <img src="https://i.pravatar.cc/40?img=52" alt="Tom Cook" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', outline: `2px solid ${C.gold}44` }} />
-          <span style={{ fontSize: 14, fontWeight: 500, color: C.userText }}>Tom Cook</span>
+          <img src="" alt="Tom Cook" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', outline: `2px solid ${C.gold}44` }} />
+          <span style={{ fontSize: 14, fontWeight: 500, color: C.userText }}>Leiliane Soares</span>
         </div>
       </div>
     </aside>
