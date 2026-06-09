@@ -5,7 +5,7 @@ import Clientes from './pages/Clientes'
 import Lancamentos from './pages/Lancamentos'
 import Categorias from './pages/Categorias'
 import TipoDeConta from './pages/TipoDeConta'
-import Classificacoes from './pages/Classificacoes'
+import ExtratoCliente from './pages/ExtratoCLiente'
 
 export default function App() {
   return (
@@ -17,7 +17,7 @@ export default function App() {
           <Route path="lancamentos"    element={<Lancamentos />} />
           <Route path="categorias"     element={<Categorias />} />
           <Route path="tipodeconta"    element={<TipoDeConta />} />
-          <Route path="classificacoes" element={<Classificacoes />} />
+          <Route path="extrato-cliente" element={<ExtratoCliente />} />
         </Route>
       </Routes>
     </BrowserRouter>

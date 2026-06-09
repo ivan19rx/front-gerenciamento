@@ -15,14 +15,13 @@ interface LancamentoAPI {
   dataLancamento: string
   tipo: 'ENTRADA' | 'SAIDA'
   valor: string
-  observacao: string
+  observacao: string | null
+  classificacao: string | null
   fornecedorClienteId: number
   contaId: number
-  classificacaoId: number
   categoriaId: number
   fornecedorCliente: { id: number; nome: string }
   conta: { id: number; nome: string }
-  classificacao: { id: number; nome: string }
   categoria: { id: number; nome: string }
 }
 
@@ -35,7 +34,7 @@ interface FormState {
   observacao: string
   fornecedorClienteId: string
   contaId: string
-  classificacaoId: string
+  classificacao: string
   categoriaId: string
 }
 
@@ -46,7 +45,7 @@ const EMPTY_FORM: FormState = {
   observacao: '',
   fornecedorClienteId: '',
   contaId: '',
-  classificacaoId: '',
+  classificacao: '',
   categoriaId: '',
 }
 
@@ -58,13 +57,12 @@ function formatDate(iso: string) {
 
 function validate(form: FormState) {
   const errors: Partial<Record<keyof FormState, string>> = {}
-  if (!form.valor.trim())               errors.valor               = 'Valor é obrigatório'
-  else if (isNaN(parseFloat(form.valor))) errors.valor             = 'Valor deve ser um número'
-  if (!form.dataLancamento)             errors.dataLancamento      = 'Data é obrigatória'
-  if (!form.fornecedorClienteId)        errors.fornecedorClienteId = 'Selecione um cliente/fornecedor'
-  if (!form.contaId)                    errors.contaId             = 'Selecione uma conta'
-  if (!form.classificacaoId)            errors.classificacaoId     = 'Selecione uma classificação'
-  if (!form.categoriaId)                errors.categoriaId         = 'Selecione uma categoria'
+  if (!form.valor.trim())                errors.valor               = 'Valor é obrigatório'
+  else if (isNaN(parseFloat(form.valor))) errors.valor              = 'Valor deve ser um número'
+  if (!form.dataLancamento)              errors.dataLancamento      = 'Data é obrigatória'
+  if (!form.fornecedorClienteId)         errors.fornecedorClienteId = 'Selecione um cliente/fornecedor'
+  if (!form.contaId)                     errors.contaId             = 'Selecione uma conta'
+  if (!form.categoriaId)                 errors.categoriaId         = 'Selecione uma categoria'
   return errors
 }
 
@@ -124,11 +122,10 @@ interface LancamentoFormProps {
   isEdit: boolean
   clientes: Opcao[]
   contas: Opcao[]
-  classificacoes: Opcao[]
   categorias: Opcao[]
 }
 
-function LancamentoForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit, clientes, contas, classificacoes, categorias }: LancamentoFormProps) {
+function LancamentoForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit, clientes, contas, categorias }: LancamentoFormProps) {
   const row2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
 
   return (
@@ -177,11 +174,12 @@ function LancamentoForm({ form, errors, submitting, onChange, onSubmit, onCancel
 
       {/* Linha 4: Classificação + Categoria */}
       <div style={row2}>
-        <Field label="Classificação" error={errors.classificacaoId}>
-          <Select value={form.classificacaoId} onChange={e => onChange({ ...form, classificacaoId: (e.target as HTMLSelectElement).value })}>
-            <option value="">Selecione...</option>
-            {classificacoes.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}
-          </Select>
+        <Field label="Classificação">
+          <Input
+            placeholder="Opcional"
+            value={form.classificacao}
+            onChange={e => onChange({ ...form, classificacao: (e.target as HTMLInputElement).value })}
+          />
         </Field>
         <Field label="Categoria" error={errors.categoriaId}>
           <Select value={form.categoriaId} onChange={e => onChange({ ...form, categoriaId: (e.target as HTMLSelectElement).value })}>
@@ -225,11 +223,9 @@ function AddButton({ onClick }: { onClick: () => void }) {
 export default function Lancamentos() {
   const { data, loading, error, refetch } = useFetch<LancamentoAPI[]>('/lancamentos')
 
-  // opções dos selects
-  const { data: clientes }      = useFetch<Opcao[]>('/fornecedores-clientes')
-  const { data: contas }        = useFetch<Opcao[]>('/contas')
-  const { data: classificacoes } = useFetch<Opcao[]>('/classificacoes')
-  const { data: categorias }    = useFetch<Opcao[]>('/categorias')
+  const { data: clientes }  = useFetch<Opcao[]>('/fornecedores-clientes')
+  const { data: contas }    = useFetch<Opcao[]>('/contas')
+  const { data: categorias } = useFetch<Opcao[]>('/categorias')
 
   const [createOpen,   setCreateOpen]   = useState(false)
   const [editTarget,   setEditTarget]   = useState<LancamentoAPI | null>(null)
@@ -256,7 +252,7 @@ export default function Lancamentos() {
       observacao: row.observacao ?? '',
       fornecedorClienteId: String(row.fornecedorClienteId),
       contaId: String(row.contaId),
-      classificacaoId: String(row.classificacaoId),
+      classificacao: row.classificacao ?? '',
       categoriaId: String(row.categoriaId),
     })
     setFormErrors({})
@@ -268,10 +264,10 @@ export default function Lancamentos() {
       dataLancamento: form.dataLancamento,
       tipo: form.tipo,
       valor: form.valor,
-      observacao: form.observacao,
+      observacao: form.observacao || null,
       fornecedorClienteId: Number(form.fornecedorClienteId),
       contaId: Number(form.contaId),
-      classificacaoId: Number(form.classificacaoId),
+      classificacao: form.classificacao.trim() || null,
       categoriaId: Number(form.categoriaId),
     }
   }
@@ -303,7 +299,7 @@ export default function Lancamentos() {
     setSubmitting(true)
     try {
       const res = await fetch(`${API_BASE_URL}/lancamentos/${editTarget.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildBody(form)),
       })
@@ -333,25 +329,24 @@ export default function Lancamentos() {
   }
 
   const columns: Column<LancamentoAPI>[] = [
-    { key: 'id',                  label: '#',             render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
-    { key: 'dataLancamento',      label: 'Data',          render: r => <span style={{ color: C.tableTextMuted }}>{formatDate(r.dataLancamento)}</span> },
-    { key: 'tipo',                label: 'Tipo',          render: r => <TipoCell tipo={r.tipo} /> },
-    { key: 'valor',               label: 'Valor',         render: r => <ValorCell valor={r.valor} tipo={r.tipo} /> },
-    { key: 'fornecedorCliente',   label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente.nome}</span> },
-    { key: 'conta',               label: 'Conta',         render: r => <span style={{ color: C.tableTextMuted }}>{r.conta.nome}</span> },
-    { key: 'categoria',           label: 'Categoria',     render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria.nome}</span> },
-    { key: 'classificacao',       label: 'Classificação', render: r => <span style={{ color: C.tableTextMuted }}>{r.classificacao.nome}</span> },
-    { key: 'observacao',          label: 'Observação',    render: r => <span style={{ color: C.tableTextMuted }}>{r.observacao ?? '—'}</span> },
-    { key: 'acao',                label: 'Ação',          render: r => (
+    { key: 'id',                label: '#',             render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
+    { key: 'dataLancamento',    label: 'Data',          render: r => <span style={{ color: C.tableTextMuted }}>{formatDate(r.dataLancamento)}</span> },
+    { key: 'tipo',              label: 'Tipo',          render: r => <TipoCell tipo={r.tipo} /> },
+    { key: 'valor',             label: 'Valor',         render: r => <ValorCell valor={r.valor} tipo={r.tipo} /> },
+    { key: 'fornecedorCliente', label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente.nome}</span> },
+    { key: 'conta',             label: 'Conta',         render: r => <span style={{ color: C.tableTextMuted }}>{r.conta.nome}</span> },
+    { key: 'categoria',         label: 'Categoria',     render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria.nome}</span> },
+    { key: 'classificacao',     label: 'Classificação', render: r => <span style={{ color: C.tableTextMuted }}>{r.classificacao ?? '—'}</span> },
+    { key: 'observacao',        label: 'Observação',    render: r => <span style={{ color: C.tableTextMuted }}>{r.observacao ?? '—'}</span> },
+    { key: 'acao',              label: 'Ação',          render: r => (
       <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} />
     )},
   ]
 
   const opcoes = {
-    clientes:       clientes       ?? [],
-    contas:         contas         ?? [],
-    classificacoes: classificacoes ?? [],
-    categorias:     categorias     ?? [],
+    clientes:  clientes  ?? [],
+    contas:    contas    ?? [],
+    categorias: categorias ?? [],
   }
 
   return (
