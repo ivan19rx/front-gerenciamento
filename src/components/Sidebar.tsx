@@ -1,41 +1,214 @@
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { C } from '../theme'
 import { Logo } from './Logo'
 
-const navItems = [
+// ── Tipos ────────────────────────────────────────────────────────────────────
+
+interface NavItem {
+  label: string
+  path: string
+  icon: React.ReactNode
+}
+
+interface NavGroup {
+  label: string
+  icon: React.ReactNode
+  children: NavItem[]
+}
+
+type MenuItem = { type: 'item'; data: NavItem } | { type: 'group'; data: NavGroup }
+
+// ── Menus ────────────────────────────────────────────────────────────────────
+
+const ICON = (d: React.ReactNode) => d
+
+const menuItems: MenuItem[] = [
   {
-    label: 'Dashboard',
-    path: '/',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
+    type: 'item',
+    data: {
+      label: 'Dashboard',
+      path: '/',
+      icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />),
+    },
   },
   {
-    label: 'Clientes',
-    path: '/clientes',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4.13a4 4 0 11-8 0 4 4 0 018 0zm6 4a4 4 0 00-3-3.87" />,
-  },
-  {
-    label: 'Lançamentos',
-    path: '/lancamentos',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
-  },
-  {
-    label: 'Categorias',
-    path: '/categorias',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z" />,
-  },
-  {
-    label: 'Tipo de Conta',
-    path: '/tipodeconta',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />,
-  },
-  {
-    label: 'Extrato Cliente',
-    path: '/extrato-cliente',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
+    type: 'group',
+    data: {
+      label: 'Financeiro',
+      icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />),
+      children: [
+        {
+          label: 'Lançamentos',
+          path: '/lancamentos',
+          icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />),
+        },
+        {
+          label: 'Clientes',
+          path: '/clientes',
+          icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4.13a4 4 0 11-8 0 4 4 0 018 0zm6 4a4 4 0 00-3-3.87" />),
+        },
+        {
+          label: 'Extrato Cliente',
+          path: '/extrato-cliente',
+          icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />),
+        },
+        {
+          label: 'Categorias',
+          path: '/categorias',
+          icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z" />),
+        },
+        {
+          label: 'Tipo de Conta',
+          path: '/tipodeconta',
+          icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />),
+        }
+      ],
+    },
   },
 ]
 
 
+function Icon({ d, color }: { d: React.ReactNode; color: string }) {
+  return (
+    <svg fill="none" stroke={color} strokeWidth="1.8" viewBox="0 0 24 24"
+      style={{ width: 20, height: 20, flexShrink: 0 }}>
+      {d}
+    </svg>
+  )
+}
+
+
+function SimpleItem({ item }: { item: NavItem }) {
+  return (
+    <NavLink
+      to={item.path}
+      end={item.path === '/'}
+      style={({ isActive }) => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '10px 12px',
+        borderRadius: 8,
+        textDecoration: 'none',
+        background: isActive ? C.activeItem : 'transparent',
+        transition: 'background 0.15s',
+      })}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLElement
+        if (!el.getAttribute('data-active')) el.style.background = C.hoverItem
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLElement
+        if (!el.getAttribute('data-active')) el.style.background = 'transparent'
+      }}
+    >
+      {({ isActive }) => (
+        <>
+          <Icon d={item.icon} color={isActive ? C.activeIcon : C.mutedIcon} />
+          <span style={{ fontSize: 14, fontWeight: 500, color: isActive ? C.activeText : C.mutedText }}>
+            {item.label}
+          </span>
+        </>
+      )}
+    </NavLink>
+  )
+}
+
+// ── Grupo colapsável ─────────────────────────────────────────────────────────
+
+function GroupItem({ group }: { group: NavGroup }) {
+  const location = useLocation()
+  const temFilhoAtivo = group.children.some(c => location.pathname === c.path || location.pathname.startsWith(c.path + '/'))
+  const [aberto, setAberto] = useState(temFilhoAtivo)
+
+  return (
+    <div>
+      {/* Cabeçalho do grupo */}
+      <button
+        onClick={() => setAberto(a => !a)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          padding: '10px 12px',
+          borderRadius: 8,
+          border: 'none',
+          background: temFilhoAtivo && !aberto ? C.activeItem : 'transparent',
+          cursor: 'pointer',
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = temFilhoAtivo && !aberto ? C.activeItem : 'transparent'}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Icon d={group.icon} color={temFilhoAtivo ? C.activeIcon : C.mutedIcon} />
+          <span style={{ fontSize: 14, fontWeight: 500, color: temFilhoAtivo ? C.activeText : C.mutedText }}>
+            {group.label}
+          </span>
+        </div>
+
+        {/* Seta */}
+        <svg
+          fill="none" stroke={C.mutedIcon} strokeWidth="2" viewBox="0 0 24 24"
+          style={{ width: 16, height: 16, flexShrink: 0, transition: 'transform 0.2s', transform: aberto ? 'rotate(90deg)' : 'rotate(0deg)' }}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Filhos */}
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: aberto ? group.children.length * 48 + 'px' : '0px',
+        transition: 'max-height 0.25s ease',
+      }}>
+        <div style={{ paddingLeft: 12, marginTop: 2, position: 'relative' }}>
+          {/* Linha vertical */}
+          <div style={{ position: 'absolute', left: 22, top: 4, bottom: 4, width: 1, background: C.borderColor }} />
+
+          {group.children.map(child => (
+            <NavLink
+              key={child.path}
+              to={child.path}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 10px 8px 22px',
+                borderRadius: 8,
+                textDecoration: 'none',
+                background: isActive ? C.activeItem : 'transparent',
+                transition: 'background 0.15s',
+                marginBottom: 2,
+              })}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement
+                if (!el.getAttribute('aria-current')) el.style.background = C.hoverItem
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement
+                if (!el.getAttribute('aria-current')) el.style.background = 'transparent'
+              }}
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon d={child.icon} color={isActive ? C.activeIcon : C.mutedIcon} />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: isActive ? C.activeText : C.mutedText }}>
+                    {child.label}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   open: boolean
@@ -69,55 +242,24 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav style={{ padding: '16px 12px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/'}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 12px',
-              borderRadius: 8,
-              textDecoration: 'none',
-              background: isActive ? C.activeItem : 'transparent',
-              transition: 'background 0.15s',
-            })}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLElement
-              if (!el.classList.contains('active')) el.style.background = C.hoverItem
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement
-              if (!el.classList.contains('active')) el.style.background = 'transparent'
-            }}
-          >
-            {({ isActive }) => (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <svg fill="none" stroke={isActive ? C.activeIcon : C.mutedIcon} strokeWidth="1.8" viewBox="0 0 24 24" style={{ width: 20, height: 20, flexShrink: 0 }}>
-                  {item.icon}
-                </svg>
-                <span style={{ fontSize: 14, fontWeight: 500, color: isActive ? C.activeText : C.mutedText }}>
-                  {item.label}
-                </span>
-              </div>
-            )}
-          </NavLink>
-        ))}
+      <nav style={{ padding: '16px 12px 0', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', flex: 1 }}>
+        {menuItems.map((item, i) =>
+          item.type === 'item'
+            ? <SimpleItem key={i} item={item.data} />
+            : <GroupItem key={i} group={item.data} />
+        )}
       </nav>
 
-      <div style={{ flex: 1 }} />
-      <div style={{ height: 1, background: C.borderColor, margin: '0 20px' }} />
+      <div style={{ height: 1, background: C.borderColor, margin: '8px 20px' }} />
 
       {/* User */}
-      <div style={{ padding: '12px 12px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
+      <div style={{ padding: '8px 12px 20px' }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
         >
-          <img src="" alt="Tom Cook" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', outline: `2px solid ${C.gold}44` }} />
+          <img src="" alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', outline: `2px solid ${C.gold}44`, background: C.activeItem }} />
           <span style={{ fontSize: 14, fontWeight: 500, color: C.userText }}>Leiliane Soares</span>
         </div>
       </div>
