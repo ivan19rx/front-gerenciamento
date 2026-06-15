@@ -75,23 +75,6 @@ function LancamentoRow({ item, isLast }: { item: Lancamento; isLast: boolean }) 
   )
 }
 
-function ClienteRow({ cliente, isLast }: { cliente: Cliente; isLast: boolean }) {
-  const saldo = parseFloat(cliente.saldo)
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F1F5F3', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F1F5F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#3D7060' }}>{cliente.nome[0].toUpperCase()}</span>
-        </div>
-        <p style={{ margin: 0, fontSize: 14, color: '#1A2E25', fontWeight: 500 }}>{cliente.nome}</p>
-      </div>
-      <span style={{ fontWeight: 600, fontSize: 13, color: saldo >= 0 ? '#16a34a' : '#dc2626' }}>
-        {moeda(saldo)}
-      </span>
-    </div>
-  )
-}
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #E2EBE7', borderRadius: 12, padding: '20px 24px' }}>
@@ -112,16 +95,10 @@ export default function Dashboard() {
 
   const calculado = useMemo(() => {
     if (!clientes) return null
-
-    const totalClientes  = clientes.length
-    const clientesAtivos = clientes.filter(c => c.ativo).length
-    const totalAReceber  = clientes.filter(c => parseFloat(c.saldo) > 0).reduce((acc, c) => acc + parseFloat(c.saldo), 0)
-    const totalAPagar    = clientes.filter(c => parseFloat(c.saldo) < 0).reduce((acc, c) => acc + parseFloat(c.saldo), 0)
-
-    const topCredores  = [...clientes].filter(c => parseFloat(c.saldo) > 0).sort((a, b) => parseFloat(b.saldo) - parseFloat(a.saldo)).slice(0, 5)
-    const topDevedores = [...clientes].filter(c => parseFloat(c.saldo) < 0).sort((a, b) => parseFloat(a.saldo) - parseFloat(b.saldo)).slice(0, 5)
-
-    return { totalClientes, clientesAtivos, totalAReceber, totalAPagar, topCredores, topDevedores }
+    return {
+      totalClientes:  clientes.length,
+      clientesAtivos: clientes.filter(c => c.ativo).length,
+    }
   }, [clientes])
 
   const resumo = resumoData?.resumo
@@ -134,14 +111,12 @@ export default function Dashboard() {
 
       {!loading && resumo && calculado && (
         <>
-          {/* Cards — dados do /lancamentos/resumo */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 14, marginBottom: 20 }}>
-            <Card label="Total de Clientes"   value={String(calculado.totalClientes)}       color="#1A2E25"  sub={`${calculado.clientesAtivos} ativos`} />
-            <Card label="Lançamentos"          value={String(resumo.totalRegistros)}          color="#1A2E25"  sub={`${resumo.quantidadeEntradas}E · ${resumo.quantidadeSaidas}S`} />
-            <Card label="Total Entradas"       value={moeda(resumo.totalEntradas)}            color="#16a34a"  sub={`${resumo.quantidadeEntradas} registros`} />
-            <Card label="Total Saídas"         value={moeda(resumo.totalSaidas)}              color="#dc2626"  sub={`${resumo.quantidadeSaidas} registros`} />
-            <Card label="Saldo Final"          value={moeda(resumo.saldoFinal)}               color={resumo.saldoFinal >= 0 ? '#16a34a' : '#dc2626'} />
-            
+            <Card label="Total de Clientes" value={String(calculado.totalClientes)} color="#1A2E25" sub={`${calculado.clientesAtivos} ativos`} />
+            <Card label="Lançamentos"       value={String(resumo.totalRegistros)}   color="#1A2E25" />
+            <Card label="Total Entradas"    value={moeda(resumo.totalEntradas)}     color="#16a34a" />
+            <Card label="Total Saídas"      value={moeda(resumo.totalSaidas)}       color="#dc2626" />
+            <Card label="Saldo Final"       value={moeda(resumo.saldoFinal)}        color={resumo.saldoFinal >= 0 ? '#16a34a' : '#dc2626'} />
           </div>
 
           {/* Seções */}
@@ -150,20 +125,6 @@ export default function Dashboard() {
               {ultimos.length === 0
                 ? <p style={{ color: '#9DB8AD', fontSize: 13, margin: 0 }}>Nenhum lançamento registrado.</p>
                 : ultimos.map((l, i) => <LancamentoRow key={l.id} item={l} isLast={i === ultimos.length - 1} />)
-              }
-            </Section>
-
-            <Section title="Maiores Credores">
-              {calculado.topCredores.length === 0
-                ? <p style={{ color: '#9DB8AD', fontSize: 13, margin: 0 }}>Nenhum credor encontrado.</p>
-                : calculado.topCredores.map((c, i) => <ClienteRow key={c.id} cliente={c} isLast={i === calculado.topCredores.length - 1} />)
-              }
-            </Section>
-
-            <Section title="Maiores Devedores">
-              {calculado.topDevedores.length === 0
-                ? <p style={{ color: '#9DB8AD', fontSize: 13, margin: 0 }}>Nenhum devedor encontrado.</p>
-                : calculado.topDevedores.map((c, i) => <ClienteRow key={c.id} cliente={c} isLast={i === calculado.topDevedores.length - 1} />)
               }
             </Section>
           </div>

@@ -8,7 +8,6 @@ import { useFetch } from '../hooks/useFetch'
 import { API_BASE_URL } from '../config'
 import { C } from '../theme'
 
-// ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface FornecedorCliente {
   id: number
@@ -37,7 +36,6 @@ interface FormState {
 
 const EMPTY_FORM: FormState = { nome: '', saldo: '', ativo: 'true' }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -68,7 +66,6 @@ function validate(form: FormState) {
   return errors
 }
 
-// ── Botões de Ação ───────────────────────────────────────────────────────────
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
@@ -95,7 +92,6 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
   )
 }
 
-// ── Formulário ───────────────────────────────────────────────────────────────
 
 interface ClienteFormProps {
   form: FormState
@@ -155,17 +151,14 @@ function ClienteForm({ form, errors, submitting, onChange, onSubmit, onCancel, i
   )
 }
 
-// ── Página Principal ─────────────────────────────────────────────────────────
 
 export default function Clientes() {
   const { data, loading, error, refetch } = useFetch<FornecedorCliente[]>('/fornecedores-clientes')
 
-  // Modais
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<FornecedorCliente | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<FornecedorCliente | null>(null)
 
-  // Form
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [formErrors, setFormErrors] = useState<Partial<FormState>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -173,7 +166,6 @@ export default function Clientes() {
 
   const rows = data ? data.map(mapToRow) : []
 
-  // ── Abrir modais ────────────────────────────────────────────────
 
   function openCreate() {
     setForm(EMPTY_FORM)
