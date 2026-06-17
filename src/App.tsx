@@ -7,6 +7,8 @@ import Categorias from './pages/Categorias'
 import TipoDeConta from './pages/TipoDeConta'
 import ExtratoCliente from './pages/ExtratoCLiente'
 import Login from './pages/Login'
+import { AdminLayout } from './components/admin/AdminLayout'
+import Empresas from './components/admin/Empresas'
 
 export default function App() {
   return (
@@ -14,14 +16,18 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="clientes" element={<Clientes />} />
-          <Route path="lancamentos" element={<Lancamentos />} />
-          <Route path="categorias" element={<Categorias />} />
-          <Route path="tipodeconta" element={<TipoDeConta />} />
+          <Route path="clientes"        element={<Clientes />} />
+          <Route path="lancamentos"     element={<Lancamentos />} />
+          <Route path="categorias"      element={<Categorias />} />
+          <Route path="tipodeconta"     element={<TipoDeConta />} />
           <Route path="extrato-cliente" element={<ExtratoCliente />} />
         </Route>
-        <Route path="/login" element={<Login />} />
 
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Empresas />} />
+        </Route>
+
+        <Route path="/login" element={<Login />} />
       </Routes>
     </BrowserRouter>
   )

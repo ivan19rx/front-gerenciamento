@@ -1,0 +1,115 @@
+import { NavLink } from 'react-router-dom'
+import { C } from '../../theme'
+import { Logo } from '../../components/Logo'
+
+interface AdminSidebarProps {
+  open: boolean
+  onClose: () => void
+}
+
+const navItems = [
+  {
+    label: 'Empresas',
+    path: '/admin',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01" />,
+  },
+]
+
+export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
+  return (
+    <aside style={{
+      width: 272,
+      background: C.sidebarBg,
+      borderRight: `1px solid ${C.borderColor}`,
+      display: 'flex',
+      flexDirection: 'column',
+      flexShrink: 0,
+      position: 'fixed',
+      inset: '0 auto 0 0',
+      zIndex: 30,
+      transform: open ? 'translateX(0)' : 'translateX(-100%)',
+      transition: 'transform 0.3s ease',
+    }}>
+
+      {/* Logo + fechar */}
+      <div style={{ padding: '24px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Logo />
+        </div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.mutedIcon, padding: 4, borderRadius: 6 }}>
+          <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Badge "Modo Admin" */}
+      <div style={{ padding: '0 20px 16px' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+          color: C.gold, background: `${C.gold}1A`,
+          border: `1px solid ${C.gold}40`,
+          padding: '4px 10px', borderRadius: 999,
+        }}>
+          ⚙ Modo Admin
+        </span>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {navItems.map(item => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 12px', borderRadius: 8, textDecoration: 'none',
+              background: isActive ? C.activeItem : 'transparent',
+              transition: 'background 0.15s',
+            })}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement
+              if (!el.getAttribute('data-active')) el.style.background = C.hoverItem
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement
+              if (!el.getAttribute('data-active')) el.style.background = 'transparent'
+            }}
+          >
+            {({ isActive }) => (
+              <>
+                <svg fill="none" stroke={isActive ? C.activeIcon : C.mutedIcon} strokeWidth="1.8" viewBox="0 0 24 24" style={{ width: 20, height: 20, flexShrink: 0 }}>
+                  {item.icon}
+                </svg>
+                <span style={{ fontSize: 14, fontWeight: 500, color: isActive ? C.activeText : C.mutedText }}>
+                  {item.label}
+                </span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div style={{ flex: 1 }} />
+      <div style={{ height: 1, background: C.borderColor, margin: '0 20px' }} />
+
+      {/* User */}
+      <div style={{ padding: '12px 12px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+        >
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.activeItem, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.activeIcon }}>SA</span>
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: C.userText }}>Super Admin</p>
+            <p style={{ margin: 0, fontSize: 11, color: C.mutedText }}>Acesso total</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
+}
