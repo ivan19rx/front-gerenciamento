@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { AdminSidebar } from './AdminSidebar'
+import { AdminSidebar } from '../../components/admin/AdminSidebar'
 import { Logo } from '../../components/Logo'
 import { C } from '../../theme'
 

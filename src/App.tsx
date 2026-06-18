@@ -7,7 +7,7 @@ import Categorias from './pages/Categorias'
 import TipoDeConta from './pages/TipoDeConta'
 import ExtratoCliente from './pages/ExtratoCLiente'
 import Login from './pages/Login'
-import { AdminLayout } from './components/admin/AdminLayout'
+import { AdminLayout } from './pages/admin/AdminLayout'
 import Empresas from './components/admin/Empresas'
 
 export default function App() {
