@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { DataTable, StatusBadge } from '../../components/DataTable'
-import type { Column } from '../../components/DataTable'
+import type {  Column } from '../../components/DataTable'
 import { PageWrapper } from '../../components/PageWrapper'
 import { Modal, ConfirmDialog, Field, Input } from '../../components/Modal'
 import { C } from '../../theme'
@@ -257,6 +257,56 @@ function AddButton({ onClick }: { onClick: () => void }) {
   )
 }
 
+// ── Barra de busca + ordenação ────────────────────────────────────────────────
+
+function SearchSortBar({ search, onSearchChange, sortAsc, onToggleSort }: {
+  search: string
+  onSearchChange: (v: string) => void
+  sortAsc: boolean
+  onToggleSort: () => void
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+      {/* Campo de busca */}
+      <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+        <svg
+          width="16" height="16" fill="none" stroke="#9DB8AD" strokeWidth="2" viewBox="0 0 24 24"
+          style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Buscar por razão social, nome fantasia, e-mail ou CNPJ..."
+          value={search}
+          onChange={e => onSearchChange(e.target.value)}
+          style={{
+            width: '100%', padding: '10px 12px 10px 36px', borderRadius: 8,
+            border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25',
+            outline: 'none', boxSizing: 'border-box', background: '#fff',
+          }}
+        />
+      </div>
+
+      {/* Ordenação alfabética */}
+      <button
+        onClick={onToggleSort}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '0 16px', borderRadius: 8, border: '1px solid #E2EBE7',
+          background: '#fff', color: '#4B7A6A', fontSize: 13, fontWeight: 600,
+          cursor: 'pointer', whiteSpace: 'nowrap',
+        }}
+      >
+        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h13M3 12h9M3 17h5M17 4v16m0 0l-3-3m3 3l3-3" />
+        </svg>
+        {sortAsc ? 'A → Z' : 'Z → A'}
+      </button>
+    </div>
+  )
+}
+
 // ── Banner de aviso (impersonation é só visual aqui) ──────────────────────────
 
 function AccessNotice({ empresa, onClose }: { empresa: Empresa; onClose: () => void }) {
@@ -284,6 +334,9 @@ function AccessNotice({ empresa, onClose }: { empresa: Empresa; onClose: () => v
 export default function Empresas() {
   const [empresas, setEmpresas] = useState<Empresa[]>(EMPRESAS_MOCK)
 
+  const [search, setSearch]   = useState('')
+  const [sortAsc, setSortAsc] = useState(true)
+
   const [createOpen,   setCreateOpen]   = useState(false)
   const [editTarget,   setEditTarget]   = useState<Empresa | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null)
@@ -293,6 +346,27 @@ export default function Empresas() {
   const [formErrors, setFormErrors] = useState<Partial<FormState>>({})
   const [submitting, setSubmitting] = useState(false)
   const [deleting,   setDeleting]   = useState(false)
+
+  // filtra por busca e ordena alfabeticamente por razão social
+  const empresasFiltradas = useMemo(() => {
+    let resultado = empresas
+
+    if (search.trim()) {
+      const termo = search.trim().toLowerCase()
+      resultado = resultado.filter(e =>
+        e.razaoSocial.toLowerCase().includes(termo) ||
+        e.nomeFantasia?.toLowerCase().includes(termo) ||
+        e.email.toLowerCase().includes(termo) ||
+        e.cnpj?.replace(/\D/g, '').includes(termo.replace(/\D/g, ''))
+      )
+    }
+
+    return [...resultado].sort((a, b) =>
+      sortAsc
+        ? a.razaoSocial.localeCompare(b.razaoSocial, 'pt-BR')
+        : b.razaoSocial.localeCompare(a.razaoSocial, 'pt-BR')
+    )
+  }, [empresas, search, sortAsc])
 
   function openCreate() {
     setForm(EMPTY_FORM)
@@ -401,7 +475,24 @@ export default function Empresas() {
         action={<AddButton onClick={openCreate} />}
       >
         {accessNotice && <AccessNotice empresa={accessNotice} onClose={() => setAccessNotice(null)} />}
-        <DataTable columns={columns} rows={empresas} getKey={r => r.id} />
+
+        <SearchSortBar
+          search={search}
+          onSearchChange={setSearch}
+          sortAsc={sortAsc}
+          onToggleSort={() => setSortAsc(s => !s)}
+        />
+
+        {empresasFiltradas.length === 0 ? (
+          <div style={{ background: '#F1F5F3', border: '1px solid #E2EBE7', borderRadius: 10, padding: '40px 20px', textAlign: 'center' }}>
+            <p style={{ fontSize: 32, margin: '0 0 8px' }}>🔍</p>
+            <p style={{ color: '#6B8C7D', fontSize: 14, margin: 0 }}>
+              Nenhuma empresa encontrada para "{search}".
+            </p>
+          </div>
+        ) : (
+          <DataTable columns={columns} rows={empresasFiltradas} getKey={r => r.id} />
+        )}
       </PageWrapper>
 
       <Modal open={createOpen} title="Nova Empresa" onClose={() => setCreateOpen(false)} width={560}>
