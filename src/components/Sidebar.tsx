@@ -62,12 +62,18 @@ const menuItems: MenuItem[] = [
           label: 'Tipo de Conta',
           path: '/tipodeconta',
           icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />),
-        }
+        },
+        {
+          label: 'Classificações',
+          path: '/classificacoes',
+          icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />),
+        },
       ],
     },
   },
 ]
 
+// ── Ícone SVG ────────────────────────────────────────────────────────────────
 
 function Icon({ d, color }: { d: React.ReactNode; color: string }) {
   return (
@@ -78,6 +84,7 @@ function Icon({ d, color }: { d: React.ReactNode; color: string }) {
   )
 }
 
+// ── Item simples ─────────────────────────────────────────────────────────────
 
 function SimpleItem({ item }: { item: NavItem }) {
   return (
@@ -232,8 +239,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     }}>
 
       {/* Logo + fechar */}
-      <div style={{ padding: '24px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Logo />
+      <div style={{ padding: '20px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Logo size={48} />
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.mutedIcon, padding: 4, borderRadius: 6 }}>
           <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

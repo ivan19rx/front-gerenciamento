@@ -28,16 +28,17 @@ export function Layout() {
         transition: 'margin-left 0.3s ease',
       }}>
         {/* Topbar */}
-        <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `1px solid ${C.borderColor}`, background: C.topbarBg, flexShrink: 0 }}>
+        <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', borderBottom: `1px solid ${C.borderColor}`, background: C.topbarBg, flexShrink: 0, height: 56 }}>
           {!sidebarOpen && (
-            <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.mutedIcon, padding: 6, borderRadius: 6 }}>
-              <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+            <>
+              <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.mutedIcon, padding: 6, borderRadius: 6, flexShrink: 0 }}>
+                <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <Logo size={36} />
+            </>
           )}
-          <Logo size={26} />
-          <span style={{ fontSize: 14, fontWeight: 500, color: C.mutedText }}>Dashboard</span>
         </header>
 
         {/* Page content via Outlet */}
