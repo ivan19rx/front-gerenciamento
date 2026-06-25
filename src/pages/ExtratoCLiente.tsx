@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { DataTable } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
@@ -50,6 +50,13 @@ const FILTROS_INICIAIS: Filtros = {
   tipo: '',
 }
 
+// ── Estilos compartilhados ────────────────────────────────────────────────────
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12, fontWeight: 600, color: '#6B8C7D',
+  textTransform: 'uppercase', letterSpacing: '0.04em',
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
@@ -67,6 +74,51 @@ function buildUrl(filtros: Filtros): string {
   if (filtros.categoriaId) params.set('categoriaId', filtros.categoriaId)
   params.set('tipo', filtros.tipo || 'TODOS')
   return `${API_BASE_URL}/lancamentos/filtros?${params.toString()}`
+}
+
+// Calcula o resumo a partir das linhas realmente exibidas, mantendo os cards
+// sempre coerentes com a tabela (inclusive após a busca rápida).
+function calcResumo(lancamentos: LancamentoItem[]) {
+  let totalEntradas = 0
+  let totalSaidas = 0
+  for (const l of lancamentos) {
+    const v = parseFloat(l.valor) || 0
+    if (l.tipo === 'ENTRADA') totalEntradas += v
+    else totalSaidas += v
+  }
+  return {
+    totalRegistros: lancamentos.length,
+    totalEntradas,
+    totalSaidas,
+    saldoCalculado: totalEntradas - totalSaidas,
+  }
+}
+
+// Gera e baixa um CSV dos lançamentos exibidos.
+function exportarCSV(lancamentos: LancamentoItem[]) {
+  const cabecalho = ['ID', 'Data', 'Tipo', 'Valor', 'Cliente/Fornecedor', 'Conta', 'Categoria', 'Classificação', 'Observação']
+  const escapar = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`
+
+  const linhas = lancamentos.map(l => [
+    l.id,
+    formatDate(l.dataLancamento),
+    l.tipo,
+    parseFloat(l.valor).toFixed(2).replace('.', ','),
+    l.fornecedorCliente.nome,
+    l.conta.nome,
+    l.categoria.nome,
+    l.classificacao,
+    l.observacao || '',
+  ].map(c => escapar(String(c))).join(';'))
+
+  const conteudo = '﻿' + [cabecalho.join(';'), ...linhas].join('\n')
+  const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `extrato-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 // ── Componentes visuais ──────────────────────────────────────────────────────
@@ -87,16 +139,17 @@ function TipoCell({ tipo }: { tipo: 'ENTRADA' | 'SAIDA' }) {
 }
 
 function ValorCell({ valor, tipo }: { valor: string; tipo: 'ENTRADA' | 'SAIDA' }) {
-  const num = parseFloat(valor)
+  const num = parseFloat(valor) || 0
+  const isEntrada = tipo === 'ENTRADA'
   return (
-    <span style={{ fontWeight: 600, color: tipo === 'ENTRADA' ? '#16a34a' : '#dc2626' }}>
-      {tipo === 'ENTRADA' ? '+' : '-'} R$ {num.toFixed(2)}
+    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: isEntrada ? '#16a34a' : '#dc2626' }}>
+      {isEntrada ? '+ ' : '- '}{moeda(Math.abs(num))}
     </span>
   )
 }
 
 function ResumoCards({ resumo, saldo }: { resumo: ExtratoResponse['resumo']; saldo?: string }) {
-  const saldoNum = saldo ? parseFloat(saldo) : resumo.saldoCalculado
+  const saldoNum = saldo != null ? parseFloat(saldo) : resumo.saldoCalculado
   const cards = [
     { label: 'Registros', value: String(resumo.totalRegistros), color: '#1A2E25' },
     { label: 'Total Entradas', value: moeda(resumo.totalEntradas), color: '#16a34a' },
@@ -107,7 +160,7 @@ function ResumoCards({ resumo, saldo }: { resumo: ExtratoResponse['resumo']; sal
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
       {cards.map(card => (
         <div key={card.label} style={{ background: '#fff', border: '1px solid #E2EBE7', borderRadius: 10, padding: '14px 18px' }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#6B8C7D', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>{card.label}</p>
+          <p style={{ ...labelStyle, fontSize: 11, letterSpacing: '0.05em', margin: '0 0 6px' }}>{card.label}</p>
           <p style={{ fontSize: 20, fontWeight: 700, color: card.color, margin: 0 }}>{card.value}</p>
         </div>
       ))}
@@ -150,7 +203,7 @@ function SelectFiltro({ label, value, onChange, options, placeholder }: {
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 160 }}>
-      <label style={{ fontSize: 12, fontWeight: 600, color: '#6B8C7D', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</label>
+      <label style={labelStyle}>{label}</label>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -160,6 +213,51 @@ function SelectFiltro({ label, value, onChange, options, placeholder }: {
         {options.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}
       </select>
     </div>
+  )
+}
+
+function BuscaRapida({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+      <svg
+        width="16" height="16" fill="none" stroke="#9DB8AD" strokeWidth="2" viewBox="0 0 24 24"
+        style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Filtrar resultados por cliente, categoria, observação..."
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          width: '100%', padding: '9px 12px 9px 36px', borderRadius: 8,
+          border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25',
+          outline: 'none', boxSizing: 'border-box', background: '#fff',
+        }}
+      />
+    </div>
+  )
+}
+
+function ExportButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title="Exportar lançamentos exibidos para CSV"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+        padding: '9px 16px', borderRadius: 8, border: '1px solid #E2EBE7',
+        background: '#fff', color: disabled ? '#9DB8AD' : '#4B7A6A',
+        fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18v1a1 1 0 001 1h14a1 1 0 001-1v-1" />
+      </svg>
+      Exportar CSV
+    </button>
   )
 }
 
@@ -174,32 +272,54 @@ export default function ExtratoCliente() {
   const [extrato, setExtrato] = useState<ExtratoResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [buscou, setBuscou] = useState(false)
+  const [buscaRapida, setBuscaRapida] = useState('')
+
+  // Garante que apenas a resposta da última requisição seja aplicada,
+  // evitando que respostas atrasadas sobrescrevam dados mais recentes.
+  const reqIdRef = useRef(0)
 
   function buscar() {
+    const reqId = ++reqIdRef.current
     const url = buildUrl(filtros)
     setLoading(true)
     setError(null)
-    setBuscou(true)
     fetch(url)
       .then(res => {
         if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`)
         return res.json()
       })
-      .then(setExtrato)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .then(json => { if (reqId === reqIdRef.current) setExtrato(json) })
+      .catch(e => { if (reqId === reqIdRef.current) setError(e.message) })
+      .finally(() => { if (reqId === reqIdRef.current) setLoading(false) })
   }
 
-  // busca ao montar a página
+  // Busca ao montar e sempre que o tipo muda pelas tabs.
   useEffect(() => {
     buscar()
-  }, [])
-
-  // rebusca quando tipo muda pelas tabs
-  useEffect(() => {
-    if (buscou) buscar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros.tipo])
+
+  // Filtragem client-side (busca rápida) sobre os lançamentos carregados.
+  const lancamentosExibidos = useMemo(() => {
+    const lista = extrato?.lancamentos ?? []
+    const termo = buscaRapida.trim().toLowerCase()
+    if (!termo) return lista
+    return lista.filter(l =>
+      l.fornecedorCliente.nome.toLowerCase().includes(termo) ||
+      l.categoria.nome.toLowerCase().includes(termo) ||
+      l.conta.nome.toLowerCase().includes(termo) ||
+      l.classificacao.toLowerCase().includes(termo) ||
+      (l.observacao ?? '').toLowerCase().includes(termo) ||
+      l.valor.includes(termo)
+    )
+  }, [extrato, buscaRapida])
+
+  const resumoExibido = useMemo(() => calcResumo(lancamentosExibidos), [lancamentosExibidos])
+
+  function limpar() {
+    setBuscaRapida('')
+    setFiltros(FILTROS_INICIAIS)
+  }
 
   const columns: Column<LancamentoItem>[] = [
     { key: 'id', label: '#', render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
@@ -218,7 +338,7 @@ export default function ExtratoCliente() {
 
       {/* Painel de filtros */}
       <div style={{ background: '#fff', border: '1px solid #E2EBE7', borderRadius: 12, padding: '20px', marginBottom: 20 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: '#6B8C7D', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 14px' }}>Filtros</p>
+        <p style={{ ...labelStyle, fontSize: 12, letterSpacing: '0.05em', margin: '0 0 14px' }}>Filtros</p>
 
         {/* Selects */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -230,12 +350,12 @@ export default function ExtratoCliente() {
         {/* Tipo + Botões */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#6B8C7D', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tipo:</span>
+            <span style={labelStyle}>Tipo:</span>
             <FiltroTabs value={filtros.tipo} onChange={v => setFiltros(f => ({ ...f, tipo: v }))} />
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => { setFiltros(FILTROS_INICIAIS); }} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#fff', color: '#6B8C7D', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+            <button onClick={limpar} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#fff', color: '#6B8C7D', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Limpar
             </button>
             <button
@@ -255,10 +375,21 @@ export default function ExtratoCliente() {
 
       {!loading && !error && extrato && (
         <>
-          <ResumoCards resumo={extrato.resumo} saldo={extrato.fornecedorCliente?.saldo} />
-          {extrato.lancamentos.length === 0
-            ? <EmptyState message="Nenhum lançamento encontrado para os filtros aplicados." />
-            : <DataTable columns={columns} rows={extrato.lancamentos} getKey={r => r.id} />
+          <ResumoCards resumo={resumoExibido} saldo={extrato.fornecedorCliente?.saldo} />
+
+          {/* Busca rápida + exportação */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <BuscaRapida value={buscaRapida} onChange={setBuscaRapida} />
+            <ExportButton onClick={() => exportarCSV(lancamentosExibidos)} disabled={lancamentosExibidos.length === 0} />
+          </div>
+
+          {lancamentosExibidos.length === 0
+            ? <EmptyState message={
+                buscaRapida.trim()
+                  ? `Nenhum lançamento corresponde a "${buscaRapida}".`
+                  : 'Nenhum lançamento encontrado para os filtros aplicados.'
+              } />
+            : <DataTable columns={columns} rows={lancamentosExibidos} getKey={r => r.id} />
           }
         </>
       )}

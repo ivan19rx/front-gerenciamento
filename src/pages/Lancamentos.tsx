@@ -51,12 +51,24 @@ const EMPTY_FORM: FormState = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+// Interpreta datas "YYYY-MM-DD" como data local (e não UTC), evitando que a
+// virada de fuso jogue um lançamento para o mês/dia anterior.
+function parseDataLocal(iso: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return new Date(iso)
+}
+
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return parseDataLocal(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function moeda(valor: number) {
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 function getMesAnoKey(iso: string) {
-  const d = new Date(iso)
+  const d = parseDataLocal(iso)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
@@ -95,10 +107,11 @@ function TipoCell({ tipo }: { tipo: 'ENTRADA' | 'SAIDA' }) {
 }
 
 function ValorCell({ valor, tipo }: { valor: string; tipo: 'ENTRADA' | 'SAIDA' }) {
-  const num = parseFloat(valor)
+  const num = parseFloat(valor) || 0
+  const isEntrada = tipo === 'ENTRADA'
   return (
-    <span style={{ fontWeight: 600, color: tipo === 'ENTRADA' ? '#16a34a' : '#dc2626' }}>
-      {tipo === 'ENTRADA' ? '+' : '-'} R$ {num.toFixed(2)}
+    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: isEntrada ? '#16a34a' : '#dc2626' }}>
+      {isEntrada ? '+ ' : '- '}{moeda(Math.abs(num))}
     </span>
   )
 }
@@ -160,16 +173,16 @@ function MesHeader({ label, lancamentos, aberto, onToggle }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <div style={{ textAlign: 'right' }}>
           <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Entradas</p>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#16a34a' }}>+ R$ {entradas.toFixed(2)}</p>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#16a34a' }}>+ {moeda(entradas)}</p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saídas</p>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#dc2626' }}>- R$ {saidas.toFixed(2)}</p>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#dc2626' }}>- {moeda(saidas)}</p>
         </div>
         <div style={{ textAlign: 'right', minWidth: 90 }}>
           <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saldo</p>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: saldo >= 0 ? '#16a34a' : '#dc2626' }}>
-            {saldo >= 0 ? '+' : ''} R$ {saldo.toFixed(2)}
+            {saldo >= 0 ? '+ ' : '- '}{moeda(Math.abs(saldo))}
           </p>
         </div>
       </div>
@@ -182,6 +195,7 @@ function MesHeader({ label, lancamentos, aberto, onToggle }: {
 interface LancamentoFormProps {
   form: FormState
   errors: Partial<Record<keyof FormState, string>>
+  serverError: string | null
   submitting: boolean
   onChange: (f: FormState) => void
   onSubmit: () => void
@@ -192,11 +206,17 @@ interface LancamentoFormProps {
   categorias: Opcao[]
 }
 
-function LancamentoForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit, clientes, contas, categorias }: LancamentoFormProps) {
+function LancamentoForm({ form, errors, serverError, submitting, onChange, onSubmit, onCancel, isEdit, clientes, contas, categorias }: LancamentoFormProps) {
   const row2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
 
   return (
     <>
+      {serverError && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span style={{ color: '#DC2626', fontSize: 13, fontWeight: 500 }}>{serverError}</span>
+        </div>
+      )}
       <div style={row2}>
         <Field label="Tipo" error={errors.tipo}>
           <Select value={form.tipo} onChange={e => onChange({ ...form, tipo: (e.target as HTMLSelectElement).value as 'ENTRADA' | 'SAIDA' })}>
@@ -287,6 +307,7 @@ export default function Lancamentos() {
   const [deleteTarget, setDeleteTarget] = useState<LancamentoAPI | null>(null)
   const [form,         setForm]         = useState<FormState>(EMPTY_FORM)
   const [formErrors,   setFormErrors]   = useState<Partial<Record<keyof FormState, string>>>({})
+  const [serverError,  setServerError]  = useState<string | null>(null)
   const [submitting,   setSubmitting]   = useState(false)
   const [deleting,     setDeleting]     = useState(false)
 
@@ -319,8 +340,8 @@ export default function Lancamentos() {
     return ordens[key] ?? 'recente'
   }
 
-  function toggleOrdem(key: string) {
-    setOrdens(prev => ({ ...prev, [key]: getOrdem(key) === 'recente' ? 'antigo' : 'recente' }))
+  function setOrdem(key: string, value: 'recente' | 'antigo') {
+    setOrdens(prev => ({ ...prev, [key]: value }))
   }
 
   function sortItems(items: LancamentoAPI[], key: string) {
@@ -335,6 +356,7 @@ export default function Lancamentos() {
   function openCreate() {
     setForm(EMPTY_FORM)
     setFormErrors({})
+    setServerError(null)
     setCreateOpen(true)
   }
 
@@ -350,7 +372,18 @@ export default function Lancamentos() {
       categoriaId: String(row.categoriaId),
     })
     setFormErrors({})
+    setServerError(null)
     setEditTarget(row)
+  }
+
+  // Extrai a mensagem de erro de uma resposta, tolerando corpo não-JSON.
+  async function extrairErro(res: Response): Promise<string> {
+    try {
+      const b = await res.json()
+      return b.message ?? `Erro ${res.status}`
+    } catch {
+      return `Erro ${res.status}`
+    }
   }
 
   function buildBody(f: FormState) {
@@ -370,17 +403,18 @@ export default function Lancamentos() {
     const errs = validate(form)
     if (Object.keys(errs).length) { setFormErrors(errs); return }
     setSubmitting(true)
+    setServerError(null)
     try {
       const res = await fetch(`${API_BASE_URL}/lancamentos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildBody(form)),
       })
-      if (!res.ok) { const b = await res.json(); throw new Error(b.message ?? `Erro ${res.status}`) }
+      if (!res.ok) throw new Error(await extrairErro(res))
       setCreateOpen(false)
       refetch()
     } catch (e: any) {
-      setFormErrors({ valor: e.message })
+      setServerError(e.message)
     } finally {
       setSubmitting(false)
     }
@@ -391,17 +425,18 @@ export default function Lancamentos() {
     if (Object.keys(errs).length) { setFormErrors(errs); return }
     if (!editTarget) return
     setSubmitting(true)
+    setServerError(null)
     try {
       const res = await fetch(`${API_BASE_URL}/lancamentos/${editTarget.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildBody(form)),
       })
-      if (!res.ok) { const b = await res.json(); throw new Error(b.message ?? `Erro ${res.status}`) }
+      if (!res.ok) throw new Error(await extrairErro(res))
       setEditTarget(null)
       refetch()
     } catch (e: any) {
-      setFormErrors({ valor: e.message })
+      setServerError(e.message)
     } finally {
       setSubmitting(false)
     }
@@ -469,7 +504,7 @@ export default function Lancamentos() {
                         {(['recente', 'antigo'] as const).map(op => (
                           <button
                             key={op}
-                            onClick={() => toggleOrdem(grupo.key)}
+                            onClick={() => setOrdem(grupo.key, op)}
                             style={{
                               padding: '5px 12px', borderRadius: 6, border: '1px solid #E2EBE7',
                               fontSize: 11, fontWeight: 600, cursor: 'pointer',
@@ -493,13 +528,13 @@ export default function Lancamentos() {
       </PageWrapper>
 
       <Modal open={createOpen} title="Novo Lançamento" onClose={() => setCreateOpen(false)} width={620}>
-        <LancamentoForm form={form} errors={formErrors} submitting={submitting}
+        <LancamentoForm form={form} errors={formErrors} serverError={serverError} submitting={submitting}
           onChange={setForm} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)}
           isEdit={false} {...opcoes} />
       </Modal>
 
       <Modal open={!!editTarget} title="Editar Lançamento" onClose={() => setEditTarget(null)} width={620}>
-        <LancamentoForm form={form} errors={formErrors} submitting={submitting}
+        <LancamentoForm form={form} errors={formErrors} serverError={serverError} submitting={submitting}
           onChange={setForm} onSubmit={handleEdit} onCancel={() => setEditTarget(null)}
           isEdit {...opcoes} />
       </Modal>
@@ -507,7 +542,7 @@ export default function Lancamentos() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Excluir lançamento"
-        message={`Tem certeza que deseja excluir o lançamento #${deleteTarget?.id} de R$ ${deleteTarget?.valor}? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir o lançamento #${deleteTarget?.id} de ${deleteTarget ? moeda(parseFloat(deleteTarget.valor) || 0) : ''}? Esta ação não pode ser desfeita.`}
         confirmLabel="Sim, excluir"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}

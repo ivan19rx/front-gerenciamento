@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useFetch } from '../hooks/useFetch'
 import { PageWrapper } from '../components/PageWrapper'
-import { LoadingState } from '../components/TableState'
+import { LoadingState, ErrorState } from '../components/TableState'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -39,8 +39,16 @@ function moeda(valor: number) {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+// Interpreta datas "YYYY-MM-DD" como data local (e não UTC), evitando que a
+// virada de fuso exiba o dia anterior.
+function parseDataLocal(iso: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return new Date(iso)
+}
+
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return parseDataLocal(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // ── Componentes ───────────────────────────────────────────────────────────────
@@ -69,7 +77,29 @@ function LancamentoRow({ item, isLast }: { item: Lancamento; isLast: boolean }) 
         </div>
       </div>
       <span style={{ fontWeight: 700, fontSize: 14, color: isEntrada ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
-        {isEntrada ? '+' : '-'} {moeda(parseFloat(item.valor))}
+        {isEntrada ? '+' : '-'} {moeda(parseFloat(item.valor) || 0)}
+      </span>
+    </div>
+  )
+}
+
+function ClienteSaldoRow({ cliente, isLast }: { cliente: Cliente; isLast: boolean }) {
+  const saldo = parseFloat(cliente.saldo) || 0
+  const positivo = saldo >= 0
+  const inicial = cliente.nome.trim().charAt(0).toUpperCase() || '?'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: isLast ? 'none' : '1px solid #F1F5F3', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#F1F5F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#4B7A6A' }}>{inicial}</span>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: '#1A2E25', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cliente.nome}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9DB8AD' }}>{cliente.ativo ? 'Ativo' : 'Inativo'}</p>
+        </div>
+      </div>
+      <span style={{ fontWeight: 700, fontSize: 14, color: positivo ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
+        {moeda(saldo)}
       </span>
     </div>
   )
@@ -87,11 +117,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const { data: clientes,    loading: loadingC } = useFetch<Cliente[]>('/fornecedores-clientes')
-  const { data: lancamentos, loading: loadingL } = useFetch<Lancamento[]>('/lancamentos')
-  const { data: resumoData,  loading: loadingR } = useFetch<ResumoAPI>('/lancamentos/resumo')
+  const { data: clientes,    loading: loadingC, error: errorC, refetch: refetchC } = useFetch<Cliente[]>('/fornecedores-clientes')
+  const { data: lancamentos, loading: loadingL, error: errorL, refetch: refetchL } = useFetch<Lancamento[]>('/lancamentos')
+  const { data: resumoData,  loading: loadingR, error: errorR, refetch: refetchR } = useFetch<ResumoAPI>('/lancamentos/resumo')
 
   const loading = loadingC || loadingL || loadingR
+  const error = errorC || errorL || errorR
+
+  function recarregar() {
+    refetchC()
+    refetchL()
+    refetchR()
+  }
 
   const calculado = useMemo(() => {
     if (!clientes) return null
@@ -101,15 +138,31 @@ export default function Dashboard() {
     }
   }, [clientes])
 
+  // últimos 5 lançamentos ordenados por data (mais recentes primeiro)
+  const ultimos = useMemo(() => {
+    if (!lancamentos) return []
+    return [...lancamentos]
+      .sort((a, b) => parseDataLocal(b.dataLancamento).getTime() - parseDataLocal(a.dataLancamento).getTime())
+      .slice(0, 5)
+  }, [lancamentos])
+
+  // top 5 clientes por saldo (maior primeiro)
+  const topClientes = useMemo(() => {
+    if (!clientes) return []
+    return [...clientes]
+      .sort((a, b) => (parseFloat(b.saldo) || 0) - (parseFloat(a.saldo) || 0))
+      .slice(0, 5)
+  }, [clientes])
+
   const resumo = resumoData?.resumo
-  const ultimos = lancamentos?.slice(0, 5) ?? []
 
   return (
     <PageWrapper title="Dashboard" subtitle="Visão geral da empresa">
 
       {loading && <LoadingState message="Carregando resumo..." />}
+      {!loading && error && <ErrorState message={error} onRetry={recarregar} />}
 
-      {!loading && resumo && calculado && (
+      {!loading && !error && resumo && calculado && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 14, marginBottom: 20 }}>
             <Card label="Total de Clientes" value={String(calculado.totalClientes)} color="#1A2E25" sub={`${calculado.clientesAtivos} ativos`} />
@@ -125,6 +178,13 @@ export default function Dashboard() {
               {ultimos.length === 0
                 ? <p style={{ color: '#9DB8AD', fontSize: 13, margin: 0 }}>Nenhum lançamento registrado.</p>
                 : ultimos.map((l, i) => <LancamentoRow key={l.id} item={l} isLast={i === ultimos.length - 1} />)
+              }
+            </Section>
+
+            <Section title="Clientes com Maior Saldo">
+              {topClientes.length === 0
+                ? <p style={{ color: '#9DB8AD', fontSize: 13, margin: 0 }}>Nenhum cliente cadastrado.</p>
+                : topClientes.map((c, i) => <ClienteSaldoRow key={c.id} cliente={c} isLast={i === topClientes.length - 1} />)
               }
             </Section>
           </div>
