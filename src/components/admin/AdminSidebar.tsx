@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { C } from '../../theme'
 
@@ -15,6 +16,7 @@ const navItems = [
 ]
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   return (
     <aside style={{
       width: 272,
@@ -113,17 +115,40 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
 
       {/* User */}
       <div style={{ padding: '12px 12px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
+        {userMenuOpen && (
+          <button
+            onClick={() => { /* logout estático por enquanto */ }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+              padding: '10px 12px', marginBottom: 4, borderRadius: 8,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              textAlign: 'left', transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+          >
+            <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="none" stroke="#DC2626" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span style={{ fontSize: 14, fontWeight: 500, color: '#DC2626' }}>Sair</span>
+          </button>
+        )}
+        <div
+          onClick={() => setUserMenuOpen(o => !o)}
+          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', background: userMenuOpen ? C.hoverItem : 'transparent' }}
           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = userMenuOpen ? C.hoverItem : 'transparent'}
         >
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.activeItem, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: C.activeIcon }}>SA</span>
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: C.userText }}>Super Admin</p>
             <p style={{ margin: 0, fontSize: 11, color: C.mutedText }}>Acesso total</p>
           </div>
+          <svg style={{ width: 16, height: 16, flexShrink: 0, color: C.mutedIcon, transition: 'transform 0.2s', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </div>
     </aside>

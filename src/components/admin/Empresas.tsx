@@ -353,11 +353,12 @@ export default function Empresas() {
 
     if (search.trim()) {
       const termo = search.trim().toLowerCase()
+      const termoDigitos = termo.replace(/\D/g, '')
       resultado = resultado.filter(e =>
         e.razaoSocial.toLowerCase().includes(termo) ||
-        e.nomeFantasia?.toLowerCase().includes(termo) ||
+        !!e.nomeFantasia?.toLowerCase().includes(termo) ||
         e.email.toLowerCase().includes(termo) ||
-        e.cnpj?.replace(/\D/g, '').includes(termo.replace(/\D/g, ''))
+        (termoDigitos.length > 0 && !!e.cnpj?.replace(/\D/g, '').includes(termoDigitos))
       )
     }
 
