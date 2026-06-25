@@ -1,5 +1,5 @@
 export const C = {
-  sidebarBg:       '#0F2D25',
+  sidebarBg:       '#004147',
   mainBg:          '#EEF3F1',
   borderColor:     '#1E4538',
   activeItem:      '#1E4A38',
@@ -15,7 +15,7 @@ export const C = {
   sectionLabel:    '#3D7060',
   gold:            '#C9B06A',
   userText:        '#C9B06A',
-  topbarBg:        '#0F2D25',
+  topbarBg:        '#004147',
   tableBg:         '#FFFFFF',
   tableRowHover:   '#F6FAF8',
   tableHeader:     '#F1F5F3',

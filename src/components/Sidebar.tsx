@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { C } from '../theme'
-import { Logo } from './Logo'
 
-// ── Tipos ────────────────────────────────────────────────────────────────────
+
 
 interface NavItem {
   label: string
@@ -19,7 +18,6 @@ interface NavGroup {
 
 type MenuItem = { type: 'item'; data: NavItem } | { type: 'group'; data: NavGroup }
 
-// ── Menus ────────────────────────────────────────────────────────────────────
 
 const ICON = (d: React.ReactNode) => d
 
@@ -62,18 +60,12 @@ const menuItems: MenuItem[] = [
           label: 'Tipo de Conta',
           path: '/tipodeconta',
           icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />),
-        },
-        {
-          label: 'Classificações',
-          path: '/classificacoes',
-          icon: ICON(<path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />),
-        },
+        }
       ],
     },
   },
 ]
 
-// ── Ícone SVG ────────────────────────────────────────────────────────────────
 
 function Icon({ d, color }: { d: React.ReactNode; color: string }) {
   return (
@@ -84,7 +76,6 @@ function Icon({ d, color }: { d: React.ReactNode; color: string }) {
   )
 }
 
-// ── Item simples ─────────────────────────────────────────────────────────────
 
 function SimpleItem({ item }: { item: NavItem }) {
   return (
@@ -122,7 +113,6 @@ function SimpleItem({ item }: { item: NavItem }) {
   )
 }
 
-// ── Grupo colapsável ─────────────────────────────────────────────────────────
 
 function GroupItem({ group }: { group: NavGroup }) {
   const location = useLocation()
@@ -215,7 +205,6 @@ function GroupItem({ group }: { group: NavGroup }) {
   )
 }
 
-// ── Sidebar ──────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   open: boolean
@@ -238,11 +227,30 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       transition: 'transform 0.3s ease',
     }}>
 
-      {/* Logo + fechar */}
-      <div style={{ padding: '20px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Logo size={48} />
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.mutedIcon, padding: 4, borderRadius: 6 }}>
-          <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      {/* Logo banner full-width + botão fechar */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <img
+          src="/logo.jpeg"
+          alt="Logo SL"
+          style={{
+            width: '100%',
+            height: 140,
+            objectFit: 'cover',
+            objectPosition: 'center',
+            display: 'block',
+          }}
+        />
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: 10, right: 10,
+            background: 'rgba(0,0,0,0.3)', border: 'none',
+            cursor: 'pointer', color: '#EDE8D8',
+            padding: 6, borderRadius: 6,
+            display: 'flex', alignItems: 'center',
+          }}
+        >
+          <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>

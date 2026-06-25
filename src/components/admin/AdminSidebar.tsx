@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom'
 import { C } from '../../theme'
-import { Logo } from '../../components/Logo'
 
 interface AdminSidebarProps {
   open: boolean
@@ -31,20 +30,37 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
       transition: 'transform 0.3s ease',
     }}>
 
-      {/* Logo + fechar */}
-      <div style={{ padding: '24px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Logo />
-        </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.mutedIcon, padding: 4, borderRadius: 6 }}>
-          <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      {/* Logo banner full-width + botão fechar */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <img
+          src="/logo.jpeg"
+          alt="Logo SL"
+          style={{
+            width: '100%',
+            height: 140,
+            objectFit: 'cover',
+            objectPosition: 'center',
+            display: 'block',
+          }}
+        />
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: 10, right: 10,
+            background: 'rgba(0,0,0,0.3)', border: 'none',
+            cursor: 'pointer', color: '#EDE8D8',
+            padding: 6, borderRadius: 6,
+            display: 'flex', alignItems: 'center',
+          }}
+        >
+          <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       {/* Badge "Modo Admin" */}
-      <div style={{ padding: '0 20px 16px' }}>
+      <div style={{ padding: '12px 20px 8px' }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',

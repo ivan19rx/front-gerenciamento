@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AdminSidebar } from '../../components/admin/AdminSidebar'
-import { Logo } from '../../components/Logo'
 import { C } from '../../theme'
 
 export function AdminLayout() {
@@ -27,9 +26,9 @@ export function AdminLayout() {
       }}>
         <header style={{
           display: 'flex', alignItems: 'center', gap: 12,
-          padding: '12px 16px',
+          padding: '0 16px',
           borderBottom: `1px solid ${C.borderColor}`,
-          background: C.topbarBg, flexShrink: 0,
+          background: C.topbarBg, flexShrink: 0, height: 52,
         }}>
           {!sidebarOpen && (
             <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.mutedIcon, padding: 6, borderRadius: 6 }}>
@@ -38,8 +37,6 @@ export function AdminLayout() {
               </svg>
             </button>
           )}
-          <Logo size={26} />
-          <span style={{ fontSize: 14, fontWeight: 500, color: C.mutedText }}>Painel Administrativo</span>
         </header>
 
         <main style={{ flex: 1, background: C.mainBg, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column' }}>
