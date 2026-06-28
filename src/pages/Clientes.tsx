@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DataTable, StatusBadge } from '../components/DataTable'
+import { DataTable, ActionMenu } from '../components/DataTable'
 import type { StatusType, Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
@@ -69,26 +69,10 @@ function validate(form: FormState) {
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <button
-        onClick={onEdit}
-        title="Editar"
-        style={{ background: 'transparent', border: `1px solid #E2EBE7`, borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F1F5F3'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >
-        Editar
-      </button>
-      <button
-        onClick={onDelete}
-        title="Excluir"
-        style={{ background: 'transparent', border: `1px solid #FECACA`, borderRadius: 6, color: '#DC2626', fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FEF2F2'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >
-        Excluir
-      </button>
-    </div>
+    <ActionMenu items={[
+      { label: 'Editar', onClick: onEdit },
+      { label: 'Excluir', onClick: onDelete, danger: true },
+    ]} />
   )
 }
 
@@ -248,14 +232,12 @@ export default function Clientes() {
   // ── Colunas ─────────────────────────────────────────────────────
 
   const columns: Column<ClienteRow>[] = [
-    { key: 'id', label: '#', render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
     { key: 'nome', label: 'Nome', render: r => <strong style={{ fontWeight: 500 }}>{r.nome}</strong> },
     { key: 'saldo', label: 'Saldo', render: r => <SaldoCell valor={r.saldo} /> },
-    { key: 'status', label: 'Status', render: r => <StatusBadge status={r.status} /> },
     { key: 'cadastro', label: 'Cadastrado', render: r => <span style={{ color: C.tableTextMuted }}>{r.cadastro}</span> },
     { key: 'atualizado', label: 'Atualizado', render: r => <span style={{ color: C.tableTextMuted }}>{r.atualizado}</span> },
     {
-      key: 'acao', label: 'Ação', render: r => (
+      key: 'acao', label: 'Ação', align: 'right', render: r => (
         <RowActions
           onEdit={() => openEdit(r._raw)}
           onDelete={() => openDelete(r._raw)}

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { DataTable } from '../components/DataTable'
+import { DataTable, ActionMenu } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
@@ -20,9 +20,9 @@ interface LancamentoAPI {
   fornecedorClienteId: number
   contaId: number
   categoriaId: number
-  fornecedorCliente: { id: number; nome: string }
-  conta: { id: number; nome: string }
-  categoria: { id: number; nome: string }
+  fornecedorCliente: { id: number; nome: string } | null
+  conta: { id: number; nome: string } | null
+  categoria: { id: number; nome: string } | null
 }
 
 interface Opcao { id: number; nome: string }
@@ -118,18 +118,10 @@ function ValorCell({ valor, tipo }: { valor: string; tipo: 'ENTRADA' | 'SAIDA' }
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <button onClick={onEdit}
-        style={{ background: 'transparent', border: `1px solid #E2EBE7`, borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F1F5F3'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >Editar</button>
-      <button onClick={onDelete}
-        style={{ background: 'transparent', border: `1px solid #FECACA`, borderRadius: 6, color: '#DC2626', fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FEF2F2'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >Excluir</button>
-    </div>
+    <ActionMenu items={[
+      { label: 'Editar', onClick: onEdit },
+      { label: 'Excluir', onClick: onDelete, danger: true },
+    ]} />
   )
 }
 
@@ -458,16 +450,15 @@ export default function Lancamentos() {
   }
 
   const columns: Column<LancamentoAPI>[] = [
-    { key: 'id',                label: '#',             render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
     { key: 'dataLancamento',    label: 'Data',          render: r => <span style={{ color: C.tableTextMuted }}>{formatDate(r.dataLancamento)}</span> },
     { key: 'tipo',              label: 'Tipo',          render: r => <TipoCell tipo={r.tipo} /> },
     { key: 'valor',             label: 'Valor',         render: r => <ValorCell valor={r.valor} tipo={r.tipo} /> },
-    { key: 'fornecedorCliente', label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente.nome}</span> },
-    { key: 'conta',             label: 'Conta',         render: r => <span style={{ color: C.tableTextMuted }}>{r.conta.nome}</span> },
-    { key: 'categoria',         label: 'Categoria',     render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria.nome}</span> },
+    { key: 'fornecedorCliente', label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente?.nome ?? '—'}</span> },
+    { key: 'conta',             label: 'Conta',         render: r => <span style={{ color: C.tableTextMuted }}>{r.conta?.nome ?? '—'}</span> },
+    { key: 'categoria',         label: 'Categoria',     render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria?.nome ?? '—'}</span> },
     { key: 'classificacao',     label: 'Classificação', render: r => <span style={{ color: C.tableTextMuted }}>{r.classificacao ?? '—'}</span> },
     { key: 'observacao',        label: 'Observação',    render: r => <span style={{ color: C.tableTextMuted }}>{r.observacao ?? '—'}</span> },
-    { key: 'acao',              label: 'Ação',          render: r => <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} /> },
+    { key: 'acao',              label: 'Ação',          align: 'right', render: r => <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} /> },
   ]
 
   const opcoes = { clientes: clientes ?? [], contas: contas ?? [], categorias: categorias ?? [] }

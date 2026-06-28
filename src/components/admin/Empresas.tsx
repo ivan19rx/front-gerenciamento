@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { DataTable, StatusBadge } from '../../components/DataTable'
+import { DataTable, StatusBadge, ActionMenu } from '../../components/DataTable'
 import type {  Column } from '../../components/DataTable'
 import { PageWrapper } from '../../components/PageWrapper'
 import { Modal, ConfirmDialog, Field, Input } from '../../components/Modal'
@@ -128,7 +128,7 @@ function validate(form: FormState, isEdit: boolean) {
 
 function RowActions({ onAccess, onEdit, onDelete }: { onAccess: () => void; onEdit: () => void; onDelete: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
       <button onClick={onAccess}
         style={{ display: 'flex', alignItems: 'center', gap: 5, background: C.activeItem, border: 'none', borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 600, padding: '5px 12px', cursor: 'pointer', transition: 'opacity 0.15s' }}
         onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
@@ -139,20 +139,10 @@ function RowActions({ onAccess, onEdit, onDelete }: { onAccess: () => void; onEd
         </svg>
         Acessar
       </button>
-      <button onClick={onEdit}
-        style={{ background: 'transparent', border: '1px solid #E2EBE7', borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F1F5F3'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >
-        Editar
-      </button>
-      <button onClick={onDelete}
-        style={{ background: 'transparent', border: '1px solid #FECACA', borderRadius: 6, color: '#DC2626', fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FEF2F2'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >
-        Excluir
-      </button>
+      <ActionMenu items={[
+        { label: 'Editar', onClick: onEdit },
+        { label: 'Excluir', onClick: onDelete, danger: true },
+      ]} />
     </div>
   )
 }
@@ -448,7 +438,6 @@ export default function Empresas() {
   }
 
   const columns: Column<Empresa>[] = [
-    { key: 'id', label: '#', render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
     { key: 'razaoSocial', label: 'Empresa', render: r => (
       <div>
         <p style={{ margin: 0, fontWeight: 500 }}>{r.razaoSocial}</p>
@@ -459,7 +448,7 @@ export default function Empresas() {
     { key: 'email',    label: 'E-mail',     render: r => <span style={{ color: C.tableTextMuted }}>{r.email}</span> },
     { key: 'status',   label: 'Status',     render: r => <StatusBadge status={r.ativo ? 'Ativo' : 'Inativo'} /> },
     { key: 'criadoEm', label: 'Cadastrada', render: r => <span style={{ color: C.tableTextMuted }}>{r.criadoEm}</span> },
-    { key: 'acao',     label: 'Ação',       render: r => (
+    { key: 'acao',     label: 'Ação',       align: 'right', render: r => (
       <RowActions
         onAccess={() => setAccessNotice(r)}
         onEdit={() => openEdit(r)}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { C } from '../theme'
 
 export type StatusType = 'Ativo' | 'Inativo' | 'Pendente' | 'Concluído'
@@ -14,6 +14,8 @@ export interface Column<T> {
   key: string
   label: string
   render: (row: T) => React.ReactNode
+  align?: 'left' | 'right' | 'center'
+  width?: number | string
 }
 
 interface DataTableProps<T> {
@@ -21,6 +23,11 @@ interface DataTableProps<T> {
   rows: T[]
   getKey: (row: T) => string | number
   pageSize?: number
+  // largura mínima da tabela (rolagem horizontal abaixo disso). default 600
+  minWidth?: number
+  // largura máxima do bloco — útil para tabelas com poucas colunas,
+  // evitando que fiquem esticadas por toda a página
+  maxWidth?: number
 }
 
 export function StatusBadge({ status }: { status: StatusType }) {
@@ -33,24 +40,117 @@ export function StatusBadge({ status }: { status: StatusType }) {
   )
 }
 
-export function ActionButtons() {
+export interface ActionItem {
+  label: string
+  onClick: () => void
+  danger?: boolean
+}
+
+// Menu de ações: um único botão "⋮" que, ao clicar, abre um dropdown
+// com as opções (ex: Editar / Excluir). O menu usa position: fixed para
+// não ser cortado pelo overflow da tabela.
+export function ActionMenu({ items }: { items: ActionItem[] }) {
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDocClick(e: MouseEvent) {
+      if (btnRef.current?.contains(e.target as Node)) return
+      if (menuRef.current?.contains(e.target as Node)) return
+      setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    function close() { setOpen(false) }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    // fecha ao rolar/redimensionar, já que o menu é posicionado fixo
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
+  function toggle() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      const menuWidth = 168
+      const menuHeight = items.length * 38 + 8
+      const left = Math.max(8, r.right - menuWidth)
+      // se não couber abaixo, abre para cima
+      const openUp = r.bottom + menuHeight + 8 > window.innerHeight
+      const top = openUp ? r.top - menuHeight - 6 : r.bottom + 6
+      setCoords({ top, left })
+    }
+    setOpen(o => !o)
+  }
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
       <button
-        style={{ background: 'transparent', border: `1px solid ${C.tableBorder}`, borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F1F5F3'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+        ref={btnRef}
+        onClick={toggle}
+        title="Ações"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        style={{
+          width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: open ? '#F1F5F3' : 'transparent',
+          border: `1px solid ${C.tableBorder}`, borderRadius: 8,
+          color: C.activeIcon, cursor: 'pointer', transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => { if (!open) (e.currentTarget as HTMLElement).style.background = '#F1F5F3' }}
+        onMouseLeave={e => { if (!open) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
-        Ver
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="5" r="1.6" />
+          <circle cx="12" cy="12" r="1.6" />
+          <circle cx="12" cy="19" r="1.6" />
+        </svg>
       </button>
-      <button style={{ background: 'transparent', border: 'none', color: '#9DB8AD', cursor: 'pointer', padding: 4, borderRadius: 4, fontSize: 16, lineHeight: 1 }}>
-        ⋮
-      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{
+            position: 'fixed', top: coords.top, left: coords.left, zIndex: 1000,
+            minWidth: 168, background: '#fff',
+            border: `1px solid ${C.tableBorder}`, borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(16, 40, 32, 0.12)',
+            padding: 4, display: 'flex', flexDirection: 'column',
+          }}
+        >
+          {items.map((item, i) => (
+            <button
+              key={i}
+              role="menuitem"
+              onClick={() => { setOpen(false); item.onClick() }}
+              style={{
+                width: '100%', textAlign: 'left', background: 'transparent', border: 'none',
+                borderRadius: 6, padding: '8px 12px', fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', color: item.danger ? '#DC2626' : C.tableText,
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = item.danger ? '#FEF2F2' : '#F1F5F3'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-export function DataTable<T>({ columns, rows, getKey, pageSize = 10 }: DataTableProps<T>) {
+export function DataTable<T>({ columns, rows, getKey, pageSize = 10, minWidth = 600, maxWidth }: DataTableProps<T>) {
   const [page, setPage] = useState(1)
   const [hovered, setHovered] = useState<string | number | null>(null)
 
@@ -79,14 +179,14 @@ export function DataTable<T>({ columns, rows, getKey, pageSize = 10 }: DataTable
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
       <div style={{ background: C.tableBg, border: `1px solid ${C.tableBorder}`, borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth }}>
             <thead>
               <tr style={{ background: C.tableHeader }}>
                 {columns.map(col => (
-                  <th key={col.key} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: C.tableTextMuted, letterSpacing: '0.05em', textTransform: 'uppercase', borderBottom: `1px solid ${C.tableBorder}`, whiteSpace: 'nowrap' }}>
+                  <th key={col.key} style={{ padding: '14px 16px', textAlign: col.align ?? 'left', width: col.width, fontSize: 12, fontWeight: 600, color: C.tableTextMuted, letterSpacing: '0.05em', textTransform: 'uppercase', borderBottom: `1px solid ${C.tableBorder}`, whiteSpace: 'nowrap' }}>
                     {col.label}
                   </th>
                 ))}
@@ -103,7 +203,7 @@ export function DataTable<T>({ columns, rows, getKey, pageSize = 10 }: DataTable
                     style={{ background: hovered === key ? C.tableRowHover : 'transparent', transition: 'background 0.15s', borderBottom: `1px solid ${C.tableBorder}` }}
                   >
                     {columns.map(col => (
-                      <td key={col.key} style={{ padding: '14px 16px', fontSize: 14, color: C.tableText }}>
+                      <td key={col.key} style={{ padding: '14px 16px', textAlign: col.align ?? 'left', width: col.width, fontSize: 14, color: C.tableText }}>
                         {col.render(row)}
                       </td>
                     ))}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DataTable } from '../components/DataTable'
+import { DataTable, ActionMenu } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
@@ -27,24 +27,10 @@ function validate(form: FormState) {
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <button
-        onClick={onEdit}
-        style={{ background: 'transparent', border: `1px solid #E2EBE7`, borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F1F5F3'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >
-        Editar
-      </button>
-      <button
-        onClick={onDelete}
-        style={{ background: 'transparent', border: `1px solid #FECACA`, borderRadius: 6, color: '#DC2626', fontSize: 12, fontWeight: 500, padding: '5px 12px', cursor: 'pointer', transition: 'background 0.15s' }}
-        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FEF2F2'}
-        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-      >
-        Excluir
-      </button>
-    </div>
+    <ActionMenu items={[
+      { label: 'Editar', onClick: onEdit },
+      { label: 'Excluir', onClick: onDelete, danger: true },
+    ]} />
   )
 }
 
@@ -195,10 +181,9 @@ export default function TipoDeConta() {
   }
 
   const columns: Column<TipoConta>[] = [
-    { key: 'id', label: '#', render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
     { key: 'nome', label: 'Nome', render: r => <strong style={{ fontWeight: 500 }}>{r.nome}</strong> },
     {
-      key: 'acao', label: 'Ação', render: r => (
+      key: 'acao', label: 'Ação', align: 'right', width: 90, render: r => (
         <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} />
       )
     },
@@ -214,7 +199,7 @@ export default function TipoDeConta() {
         {loading && <LoadingState message="Carregando tipos de conta..." />}
         {error && <ErrorState message={error} onRetry={refetch} />}
         {!loading && !error && rows.length === 0 && <EmptyState message="Nenhum tipo de conta cadastrado." />}
-        {!loading && !error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} />}
+        {!loading && !error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} minWidth={0} maxWidth={560} />}
       </PageWrapper>
 
       <Modal open={createOpen} title="Novo Tipo de Conta" onClose={() => setCreateOpen(false)}>

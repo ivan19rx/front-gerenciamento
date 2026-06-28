@@ -17,8 +17,8 @@ interface LancamentoItem {
   dataLancamento: string
   tipo: 'ENTRADA' | 'SAIDA'
   valor: string
-  classificacao: string
-  observacao: string
+  classificacao: string | null
+  observacao: string | null
   conta: { id: number; nome: string }
   categoria: { id: number; nome: string }
   fornecedorCliente: { id: number; nome: string; saldo: string }
@@ -107,8 +107,8 @@ function exportarCSV(lancamentos: LancamentoItem[]) {
     l.fornecedorCliente.nome,
     l.conta.nome,
     l.categoria.nome,
-    l.classificacao,
-    l.observacao || '',
+    l.classificacao ?? '',
+    l.observacao ?? '',
   ].map(c => escapar(String(c))).join(';'))
 
   const conteudo = '﻿' + [cabecalho.join(';'), ...linhas].join('\n')
@@ -305,12 +305,12 @@ export default function ExtratoCliente() {
     const termo = buscaRapida.trim().toLowerCase()
     if (!termo) return lista
     return lista.filter(l =>
-      l.fornecedorCliente.nome.toLowerCase().includes(termo) ||
-      l.categoria.nome.toLowerCase().includes(termo) ||
-      l.conta.nome.toLowerCase().includes(termo) ||
-      l.classificacao.toLowerCase().includes(termo) ||
+      (l.fornecedorCliente?.nome ?? '').toLowerCase().includes(termo) ||
+      (l.categoria?.nome ?? '').toLowerCase().includes(termo) ||
+      (l.conta?.nome ?? '').toLowerCase().includes(termo) ||
+      (l.classificacao ?? '').toLowerCase().includes(termo) ||
       (l.observacao ?? '').toLowerCase().includes(termo) ||
-      l.valor.includes(termo)
+      (l.valor ?? '').includes(termo)
     )
   }, [extrato, buscaRapida])
 
@@ -322,14 +322,13 @@ export default function ExtratoCliente() {
   }
 
   const columns: Column<LancamentoItem>[] = [
-    { key: 'id', label: '#', render: r => <span style={{ color: C.tableTextMuted }}>{r.id}</span> },
     { key: 'data', label: 'Data', render: r => <span style={{ color: C.tableTextMuted }}>{formatDate(r.dataLancamento)}</span> },
     { key: 'tipo', label: 'Tipo', render: r => <TipoCell tipo={r.tipo} /> },
     { key: 'valor', label: 'Valor', render: r => <ValorCell valor={r.valor} tipo={r.tipo} /> },
     { key: 'cliente', label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente.nome}</span> },
     { key: 'conta', label: 'Conta', render: r => <span style={{ color: C.tableTextMuted }}>{r.conta.nome}</span> },
     { key: 'categoria', label: 'Categoria', render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria.nome}</span> },
-    { key: 'classificacao', label: 'Classificação', render: r => <span style={{ color: C.tableTextMuted }}>{r.classificacao}</span> },
+    { key: 'classificacao', label: 'Classificação', render: r => <span style={{ color: C.tableTextMuted }}>{r.classificacao || '—'}</span> },
     { key: 'observacao', label: 'Observação', render: r => <span style={{ color: C.tableTextMuted }}>{r.observacao || '—'}</span> },
   ]
 
