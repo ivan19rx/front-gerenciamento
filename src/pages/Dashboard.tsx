@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useFetch } from '../hooks/useFetch'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState } from '../components/TableState'
+import { parseDataLocal, formatDate, moeda } from '../utils/format'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -31,24 +32,6 @@ interface ResumoAPI {
     quantidadeSaidas: number
     totalRegistros: number
   }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function moeda(valor: number) {
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-// Interpreta datas "YYYY-MM-DD" como data local (e não UTC), evitando que a
-// virada de fuso exiba o dia anterior.
-function parseDataLocal(iso: string): Date {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-  return new Date(iso)
-}
-
-function formatDate(iso: string) {
-  return parseDataLocal(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // ── Componentes ───────────────────────────────────────────────────────────────

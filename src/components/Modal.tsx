@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { C } from '../theme'
 
 interface ModalProps {
@@ -9,15 +9,45 @@ interface ModalProps {
   width?: number
 }
 
+// Seletor dos elementos focáveis usados no focus trap.
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export function Modal({ open, title, onClose, children, width = 480 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
 
-  // fecha com ESC
+  // Acessibilidade: fecha com ESC, prende o foco dentro do diálogo (Tab/Shift+Tab)
+  // e restaura o foco ao elemento anterior quando fecha.
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const previouslyFocused = document.activeElement as HTMLElement | null
+
+    const getFocusables = () =>
+      dialogRef.current ? Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)) : []
+
+    // foca o primeiro campo focável (ou o próprio diálogo) ao abrir
+    const focusables = getFocusables()
+    ;(focusables[0] ?? dialogRef.current)?.focus()
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab') return
+      const items = getFocusables()
+      if (items.length === 0) { e.preventDefault(); return }
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus()
+      }
+    }
     window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    return () => {
+      window.removeEventListener('keydown', handler)
+      previouslyFocused?.focus?.()
+    }
   }, [open, onClose])
 
   // trava scroll do body
@@ -46,19 +76,27 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
         @keyframes slideUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
       `}</style>
 
-      <div style={{
-        background: '#fff',
-        borderRadius: 14,
-        width: '100%',
-        maxWidth: width,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-        animation: 'slideUp 0.2s ease',
-        overflow: 'hidden',
-      }}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        style={{
+          background: '#fff',
+          borderRadius: 14,
+          width: '100%',
+          maxWidth: width,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          animation: 'slideUp 0.2s ease',
+          overflow: 'hidden',
+          outline: 'none',
+        }}
+      >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #E2EBE7' }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#1A2E25' }}>{title}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9DB8AD', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+          <h2 id={titleId} style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#1A2E25' }}>{title}</h2>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9DB8AD', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -70,6 +108,17 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
           {children}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Banner de erro vindo da API, exibido no topo dos formulários.
+export function FormError({ message }: { message: string | null }) {
+  if (!message) return null
+  return (
+    <div role="alert" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ fontSize: 16 }}>⚠️</span>
+      <span style={{ color: '#DC2626', fontSize: 13, fontWeight: 500 }}>{message}</span>
     </div>
   )
 }

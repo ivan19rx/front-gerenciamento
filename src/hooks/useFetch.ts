@@ -34,21 +34,11 @@ export function useFetch<T>(endpoint: string): UseFetchResult<T> {
     let cancelled = false
 
     const entry = cache.get(endpoint)
-
-    if (entry) {
-      // Já temos algo em cache: mostra imediatamente, sem spinner.
-      setData(entry.data as T)
-      setError(null)
-      // Se ainda está fresco, não refaz a requisição.
-      if (Date.now() - entry.timestamp < STALE_TIME) {
-        setLoading(false)
-        return
-      }
-      // Stale: segue para revalidar em segundo plano (sem mostrar loading).
-    } else {
-      setLoading(true)
-      setError(null)
-    }
+    // O estado inicial já reflete o cache (ver useState acima), então aqui só
+    // precisamos decidir se revalidamos. Com cache fresco, não refazemos a
+    // requisição. `hadCache` evita apagar a tela se a revalidação falhar.
+    const hadCache = !!entry
+    if (entry && Date.now() - entry.timestamp < STALE_TIME) return
 
     fetch(`${API_BASE_URL}${endpoint}`)
       .then(res => {
@@ -59,7 +49,14 @@ export function useFetch<T>(endpoint: string): UseFetchResult<T> {
         cache.set(endpoint, { data: json, timestamp: Date.now() })
         if (!cancelled) { setData(json); setError(null) }
       })
-      .catch(err => { if (!cancelled) setError(err.message) })
+      .catch(err => {
+        if (cancelled) return
+        // Se já mostrávamos dados do cache (ex: ao navegar entre páginas), uma
+        // falha de revalidação não deve apagá-los — apenas registramos. Só
+        // promovemos a erro bloqueante quando não havia nada para exibir.
+        if (hadCache) { console.error('Revalidação falhou:', err); return }
+        setError(err.message)
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
 
     return () => { cancelled = true }
@@ -67,8 +64,11 @@ export function useFetch<T>(endpoint: string): UseFetchResult<T> {
 
   // Força ir à rede e atualiza o cache. Usado após criar/editar/excluir,
   // inclusive invalidando o dado para as outras páginas que usam o endpoint.
+  // O loading é ligado aqui (contexto de evento), e não dentro do efeito.
   const refetch = () => {
     cache.delete(endpoint)
+    setLoading(true)
+    setError(null)
     setTrigger(t => t + 1)
   }
 

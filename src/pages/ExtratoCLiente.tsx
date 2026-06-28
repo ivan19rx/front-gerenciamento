@@ -3,8 +3,10 @@ import { DataTable } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
+import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { API_BASE_URL } from '../config'
+import { formatDate, moeda } from '../utils/format'
 import { C } from '../theme'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -19,9 +21,9 @@ interface LancamentoItem {
   valor: string
   classificacao: string | null
   observacao: string | null
-  conta: { id: number; nome: string }
-  categoria: { id: number; nome: string }
-  fornecedorCliente: { id: number; nome: string; saldo: string }
+  conta: { id: number; nome: string } | null
+  categoria: { id: number; nome: string } | null
+  fornecedorCliente: { id: number; nome: string; saldo: string } | null
 }
 
 interface ExtratoResponse {
@@ -58,14 +60,6 @@ const labelStyle: React.CSSProperties = {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function moeda(valor: number) {
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
 
 function buildUrl(filtros: Filtros): string {
   const params = new URLSearchParams()
@@ -104,9 +98,9 @@ function exportarCSV(lancamentos: LancamentoItem[]) {
     formatDate(l.dataLancamento),
     l.tipo,
     parseFloat(l.valor).toFixed(2).replace('.', ','),
-    l.fornecedorCliente.nome,
-    l.conta.nome,
-    l.categoria.nome,
+    l.fornecedorCliente?.nome ?? '',
+    l.conta?.nome ?? '',
+    l.categoria?.nome ?? '',
     l.classificacao ?? '',
     l.observacao ?? '',
   ].map(c => escapar(String(c))).join(';'))
@@ -122,31 +116,6 @@ function exportarCSV(lancamentos: LancamentoItem[]) {
 }
 
 // ── Componentes visuais ──────────────────────────────────────────────────────
-
-function TipoCell({ tipo }: { tipo: 'ENTRADA' | 'SAIDA' }) {
-  const isEntrada = tipo === 'ENTRADA'
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      fontSize: 12, fontWeight: 600,
-      color: isEntrada ? '#16a34a' : '#dc2626',
-      background: isEntrada ? '#dcfce7' : '#fee2e2',
-      padding: '3px 10px', borderRadius: 999,
-    }}>
-      {isEntrada ? '▲ Entrada' : '▼ Saída'}
-    </span>
-  )
-}
-
-function ValorCell({ valor, tipo }: { valor: string; tipo: 'ENTRADA' | 'SAIDA' }) {
-  const num = parseFloat(valor) || 0
-  const isEntrada = tipo === 'ENTRADA'
-  return (
-    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: isEntrada ? '#16a34a' : '#dc2626' }}>
-      {isEntrada ? '+ ' : '- '}{moeda(Math.abs(num))}
-    </span>
-  )
-}
 
 function ResumoCards({ resumo, saldo }: { resumo: ExtratoResponse['resumo']; saldo?: string }) {
   const saldoNum = saldo != null ? parseFloat(saldo) : resumo.saldoCalculado
@@ -293,8 +262,11 @@ export default function ExtratoCliente() {
       .finally(() => { if (reqId === reqIdRef.current) setLoading(false) })
   }
 
-  // Busca ao montar e sempre que o tipo muda pelas tabs.
+  // Busca ao montar e sempre que o tipo muda pelas tabs. É um efeito legítimo
+  // de data-fetching (com guarda de corrida via reqIdRef): a busca ao montar
+  // precisa, por natureza, disparar setState dentro do efeito.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     buscar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros.tipo])
@@ -325,9 +297,9 @@ export default function ExtratoCliente() {
     { key: 'data', label: 'Data', render: r => <span style={{ color: C.tableTextMuted }}>{formatDate(r.dataLancamento)}</span> },
     { key: 'tipo', label: 'Tipo', render: r => <TipoCell tipo={r.tipo} /> },
     { key: 'valor', label: 'Valor', render: r => <ValorCell valor={r.valor} tipo={r.tipo} /> },
-    { key: 'cliente', label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente.nome}</span> },
-    { key: 'conta', label: 'Conta', render: r => <span style={{ color: C.tableTextMuted }}>{r.conta.nome}</span> },
-    { key: 'categoria', label: 'Categoria', render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria.nome}</span> },
+    { key: 'cliente', label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente?.nome ?? '—'}</span> },
+    { key: 'conta', label: 'Conta', render: r => <span style={{ color: C.tableTextMuted }}>{r.conta?.nome ?? '—'}</span> },
+    { key: 'categoria', label: 'Categoria', render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria?.nome ?? '—'}</span> },
     { key: 'classificacao', label: 'Classificação', render: r => <span style={{ color: C.tableTextMuted }}>{r.classificacao || '—'}</span> },
     { key: 'observacao', label: 'Observação', render: r => <span style={{ color: C.tableTextMuted }}>{r.observacao || '—'}</span> },
   ]

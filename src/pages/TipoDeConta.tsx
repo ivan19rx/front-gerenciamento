@@ -1,11 +1,9 @@
-import { useState } from 'react'
 import { DataTable, ActionMenu } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
-import { Modal, ConfirmDialog, Field, Input } from '../components/Modal'
-import { useFetch } from '../hooks/useFetch'
-import { API_BASE_URL } from '../config'
+import { Modal, ConfirmDialog, Field, Input, FormError } from '../components/Modal'
+import { useCrud } from '../hooks/useCrud'
 import { C } from '../theme'
 
 interface TipoConta {
@@ -37,6 +35,7 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
 interface TipoContaFormProps {
   form: FormState
   errors: Partial<FormState>
+  serverError: string | null
   submitting: boolean
   onChange: (f: FormState) => void
   onSubmit: () => void
@@ -44,9 +43,10 @@ interface TipoContaFormProps {
   isEdit: boolean
 }
 
-function TipoContaForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit }: TipoContaFormProps) {
+function TipoContaForm({ form, errors, serverError, submitting, onChange, onSubmit, onCancel, isEdit }: TipoContaFormProps) {
   return (
     <>
+      <FormError message={serverError} />
       <Field label="Nome" error={errors.nome}>
         <Input
           placeholder="Nome do tipo de conta"
@@ -93,98 +93,21 @@ function AddButton({ onClick }: { onClick: () => void }) {
 }
 
 export default function TipoDeConta() {
-  const { data, loading, error, refetch } = useFetch<TipoConta[]>('/contas')
+  const crud = useCrud<TipoConta, FormState>({
+    endpoint: '/contas',
+    emptyForm: EMPTY_FORM,
+    toForm: t => ({ nome: t.nome }),
+    buildBody: f => ({ nome: f.nome.trim() }),
+    validate,
+  })
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<TipoConta | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<TipoConta | null>(null)
-
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [formErrors, setFormErrors] = useState<Partial<FormState>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
-  const rows = data ?? []
-
-  function openCreate() {
-    setForm(EMPTY_FORM)
-    setFormErrors({})
-    setCreateOpen(true)
-  }
-
-  function openEdit(row: TipoConta) {
-    setForm({ nome: row.nome })
-    setFormErrors({})
-    setEditTarget(row)
-  }
-
-  async function handleCreate() {
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setFormErrors(errs); return }
-    setSubmitting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/contas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: form.nome.trim() }),
-      })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.message ?? `Erro ${res.status}`)
-      }
-      setCreateOpen(false)
-      refetch()
-    } catch (e: any) {
-      setFormErrors({ nome: e.message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  async function handleEdit() {
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setFormErrors(errs); return }
-    if (!editTarget) return
-    setSubmitting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/contas/${editTarget.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: form.nome.trim() }),
-      })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.message ?? `Erro ${res.status}`)
-      }
-      setEditTarget(null)
-      refetch()
-    } catch (e: any) {
-      setFormErrors({ nome: e.message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/contas/${deleteTarget.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(`Erro ${res.status}`)
-      setDeleteTarget(null)
-      refetch()
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setDeleting(false)
-    }
-  }
+  const rows = crud.data ?? []
 
   const columns: Column<TipoConta>[] = [
     { key: 'nome', label: 'Nome', render: r => <strong style={{ fontWeight: 500 }}>{r.nome}</strong> },
     {
       key: 'acao', label: 'Ação', align: 'right', width: 90, render: r => (
-        <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} />
+        <RowActions onEdit={() => crud.openEdit(r)} onDelete={() => crud.openDelete(r)} />
       )
     },
   ]
@@ -193,39 +116,39 @@ export default function TipoDeConta() {
     <>
       <PageWrapper
         title="Tipo de Conta"
-        subtitle={data ? `${data.length} tipo(s) encontrado(s)` : 'Tipos de contas financeiras cadastradas'}
-        action={<AddButton onClick={openCreate} />}
+        subtitle={crud.data ? `${crud.data.length} tipo(s) encontrado(s)` : 'Tipos de contas financeiras cadastradas'}
+        action={<AddButton onClick={crud.openCreate} />}
       >
-        {loading && <LoadingState message="Carregando tipos de conta..." />}
-        {error && <ErrorState message={error} onRetry={refetch} />}
-        {!loading && !error && rows.length === 0 && <EmptyState message="Nenhum tipo de conta cadastrado." />}
-        {!loading && !error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} minWidth={0} maxWidth={560} />}
+        {crud.loading && <LoadingState message="Carregando tipos de conta..." />}
+        {crud.error && <ErrorState message={crud.error} onRetry={crud.refetch} />}
+        {!crud.loading && !crud.error && rows.length === 0 && <EmptyState message="Nenhum tipo de conta cadastrado." />}
+        {!crud.loading && !crud.error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} minWidth={0} maxWidth={560} />}
       </PageWrapper>
 
-      <Modal open={createOpen} title="Novo Tipo de Conta" onClose={() => setCreateOpen(false)}>
+      <Modal open={crud.createOpen} title="Novo Tipo de Conta" onClose={crud.closeCreate}>
         <TipoContaForm
-          form={form} errors={formErrors} submitting={submitting}
-          onChange={setForm} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)}
+          form={crud.form} errors={crud.formErrors} serverError={crud.serverError} submitting={crud.submitting}
+          onChange={crud.setForm} onSubmit={crud.submitCreate} onCancel={crud.closeCreate}
           isEdit={false}
         />
       </Modal>
 
-      <Modal open={!!editTarget} title="Editar Tipo de Conta" onClose={() => setEditTarget(null)}>
+      <Modal open={!!crud.editTarget} title="Editar Tipo de Conta" onClose={crud.closeEdit}>
         <TipoContaForm
-          form={form} errors={formErrors} submitting={submitting}
-          onChange={setForm} onSubmit={handleEdit} onCancel={() => setEditTarget(null)}
+          form={crud.form} errors={crud.formErrors} serverError={crud.serverError} submitting={crud.submitting}
+          onChange={crud.setForm} onSubmit={crud.submitEdit} onCancel={crud.closeEdit}
           isEdit
         />
       </Modal>
 
       <ConfirmDialog
-        open={!!deleteTarget}
+        open={!!crud.deleteTarget}
         title="Excluir tipo de conta"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir "${crud.deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Sim, excluir"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-        loading={deleting}
+        onConfirm={crud.confirmDelete}
+        onCancel={crud.closeDelete}
+        loading={crud.deleting}
       />
     </>
   )

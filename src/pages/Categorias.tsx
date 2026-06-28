@@ -1,11 +1,9 @@
-import { useState } from 'react'
 import { DataTable, ActionMenu } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
-import { Modal, ConfirmDialog, Field, Input } from '../components/Modal'
-import { useFetch } from '../hooks/useFetch'
-import { API_BASE_URL } from '../config'
+import { Modal, ConfirmDialog, Field, Input, FormError } from '../components/Modal'
+import { useCrud } from '../hooks/useCrud'
 import { C } from '../theme'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -45,6 +43,7 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
 interface CategoriaFormProps {
   form: FormState
   errors: Partial<FormState>
+  serverError: string | null
   submitting: boolean
   onChange: (f: FormState) => void
   onSubmit: () => void
@@ -52,9 +51,10 @@ interface CategoriaFormProps {
   isEdit: boolean
 }
 
-function CategoriaForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit }: CategoriaFormProps) {
+function CategoriaForm({ form, errors, serverError, submitting, onChange, onSubmit, onCancel, isEdit }: CategoriaFormProps) {
   return (
     <>
+      <FormError message={serverError} />
       <Field label="Nome" error={errors.nome}>
         <Input
           placeholder="Nome da categoria"
@@ -105,154 +105,65 @@ function AddButton({ onClick }: { onClick: () => void }) {
 // ── Página Principal ─────────────────────────────────────────────────────────
 
 export default function Categorias() {
-  const { data, loading, error, refetch } = useFetch<Categoria[]>('/categorias')
+  const crud = useCrud<Categoria, FormState>({
+    endpoint: '/categorias',
+    emptyForm: EMPTY_FORM,
+    toForm: c => ({ nome: c.nome }),
+    buildBody: f => ({ nome: f.nome.trim() }),
+    validate,
+  })
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<Categoria | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Categoria | null>(null)
-
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [formErrors, setFormErrors] = useState<Partial<FormState>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
-  const rows = data ?? []
-
-  // ── Abrir modais ────────────────────────────────────────────────
-
-  function openCreate() {
-    setForm(EMPTY_FORM)
-    setFormErrors({})
-    setCreateOpen(true)
-  }
-
-  function openEdit(row: Categoria) {
-    setForm({ nome: row.nome })
-    setFormErrors({})
-    setEditTarget(row)
-  }
-
-  // ── POST ────────────────────────────────────────────────────────
-
-  async function handleCreate() {
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setFormErrors(errs); return }
-    setSubmitting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/categorias`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: form.nome.trim() }),
-      })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.message ?? `Erro ${res.status}`)
-      }
-      setCreateOpen(false)
-      refetch()
-    } catch (e: any) {
-      setFormErrors({ nome: e.message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // ── PUT ─────────────────────────────────────────────────────────
-
-  async function handleEdit() {
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setFormErrors(errs); return }
-    if (!editTarget) return
-    setSubmitting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/categorias/${editTarget.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: form.nome.trim() }),
-      })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.message ?? `Erro ${res.status}`)
-      }
-      setEditTarget(null)
-      refetch()
-    } catch (e: any) {
-      setFormErrors({ nome: e.message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // ── DELETE ──────────────────────────────────────────────────────
-
-  async function handleDelete() {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/categorias/${deleteTarget.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(`Erro ${res.status}`)
-      setDeleteTarget(null)
-      refetch()
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  // ── Colunas ─────────────────────────────────────────────────────
+  const rows = crud.data ?? []
 
   const columns: Column<Categoria>[] = [
     { key: 'nome', label: 'Nome', render: r => <strong style={{ fontWeight: 500 }}>{r.nome}</strong> },
     {
       key: 'acao', label: 'Ação', align: 'right', width: 90, render: r => (
-        <RowActions onEdit={() => openEdit(r)} onDelete={() => setDeleteTarget(r)} />
+        <RowActions onEdit={() => crud.openEdit(r)} onDelete={() => crud.openDelete(r)} />
       )
     },
   ]
-
-  // ── Render ──────────────────────────────────────────────────────
 
   return (
     <>
       <PageWrapper
         title="Categorias"
-        subtitle={data ? `${data.length} categoria(s) encontrada(s)` : 'Categorias de receitas e despesas'}
-        action={<AddButton onClick={openCreate} />}
+        subtitle={crud.data ? `${crud.data.length} categoria(s) encontrada(s)` : 'Categorias de receitas e despesas'}
+        action={<AddButton onClick={crud.openCreate} />}
       >
-        {loading && <LoadingState message="Carregando categorias..." />}
-        {error && <ErrorState message={error} onRetry={refetch} />}
-        {!loading && !error && rows.length === 0 && <EmptyState message="Nenhuma categoria cadastrada." />}
-        {!loading && !error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} minWidth={0} maxWidth={560} />}
+        {crud.loading && <LoadingState message="Carregando categorias..." />}
+        {crud.error && <ErrorState message={crud.error} onRetry={crud.refetch} />}
+        {!crud.loading && !crud.error && rows.length === 0 && <EmptyState message="Nenhuma categoria cadastrada." />}
+        {!crud.loading && !crud.error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} minWidth={0} maxWidth={560} />}
       </PageWrapper>
 
       {/* Modal — Nova categoria */}
-      <Modal open={createOpen} title="Nova Categoria" onClose={() => setCreateOpen(false)}>
+      <Modal open={crud.createOpen} title="Nova Categoria" onClose={crud.closeCreate}>
         <CategoriaForm
-          form={form} errors={formErrors} submitting={submitting}
-          onChange={setForm} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)}
+          form={crud.form} errors={crud.formErrors} serverError={crud.serverError} submitting={crud.submitting}
+          onChange={crud.setForm} onSubmit={crud.submitCreate} onCancel={crud.closeCreate}
           isEdit={false}
         />
       </Modal>
 
       {/* Modal — Editar categoria */}
-      <Modal open={!!editTarget} title="Editar Categoria" onClose={() => setEditTarget(null)}>
+      <Modal open={!!crud.editTarget} title="Editar Categoria" onClose={crud.closeEdit}>
         <CategoriaForm
-          form={form} errors={formErrors} submitting={submitting}
-          onChange={setForm} onSubmit={handleEdit} onCancel={() => setEditTarget(null)}
+          form={crud.form} errors={crud.formErrors} serverError={crud.serverError} submitting={crud.submitting}
+          onChange={crud.setForm} onSubmit={crud.submitEdit} onCancel={crud.closeEdit}
           isEdit
         />
       </Modal>
 
       {/* Confirmação — Excluir */}
       <ConfirmDialog
-        open={!!deleteTarget}
+        open={!!crud.deleteTarget}
         title="Excluir categoria"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir "${crud.deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Sim, excluir"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-        loading={deleting}
+        onConfirm={crud.confirmDelete}
+        onCancel={crud.closeDelete}
+        loading={crud.deleting}
       />
     </>
   )

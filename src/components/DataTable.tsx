@@ -54,6 +54,7 @@ export function ActionMenu({ items }: { items: ActionItem[] }) {
   const [coords, setCoords] = useState({ top: 0, left: 0 })
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   useEffect(() => {
     if (!open) return
@@ -76,6 +77,22 @@ export function ActionMenu({ items }: { items: ActionItem[] }) {
       window.removeEventListener('resize', close)
     }
   }, [open])
+
+  // ao abrir, leva o foco para o primeiro item (navegação por teclado)
+  useEffect(() => {
+    if (open) itemRefs.current[0]?.focus()
+  }, [open])
+
+  // navega entre os itens com as setas / Home / End
+  function onMenuKeyDown(e: React.KeyboardEvent) {
+    const els = itemRefs.current.filter(Boolean) as HTMLButtonElement[]
+    if (els.length === 0) return
+    const idx = els.indexOf(document.activeElement as HTMLButtonElement)
+    if (e.key === 'ArrowDown') { e.preventDefault(); els[(idx + 1) % els.length].focus() }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); els[(idx - 1 + els.length) % els.length].focus() }
+    else if (e.key === 'Home') { e.preventDefault(); els[0].focus() }
+    else if (e.key === 'End') { e.preventDefault(); els[els.length - 1].focus() }
+  }
 
   function toggle() {
     if (!open && btnRef.current) {
@@ -119,6 +136,7 @@ export function ActionMenu({ items }: { items: ActionItem[] }) {
         <div
           ref={menuRef}
           role="menu"
+          onKeyDown={onMenuKeyDown}
           style={{
             position: 'fixed', top: coords.top, left: coords.left, zIndex: 1000,
             minWidth: 168, background: '#fff',
@@ -130,6 +148,7 @@ export function ActionMenu({ items }: { items: ActionItem[] }) {
           {items.map((item, i) => (
             <button
               key={i}
+              ref={el => { itemRefs.current[i] = el }}
               role="menuitem"
               onClick={() => { setOpen(false); item.onClick() }}
               style={{
@@ -153,11 +172,17 @@ export function ActionMenu({ items }: { items: ActionItem[] }) {
 export function DataTable<T>({ columns, rows, getKey, pageSize = 10, minWidth = 600, maxWidth }: DataTableProps<T>) {
   const [page, setPage] = useState(1)
   const [hovered, setHovered] = useState<string | number | null>(null)
+  const [prevLen, setPrevLen] = useState(rows.length)
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
 
-  // volta pra página 1 se os dados mudarem
-  useEffect(() => { setPage(1) }, [rows.length])
+  // volta pra página 1 quando o conjunto de dados muda (ex: filtro/busca).
+  // Ajuste de estado durante o render (padrão recomendado do React) em vez de
+  // um efeito, evitando uma re-renderização extra.
+  if (prevLen !== rows.length) {
+    setPrevLen(rows.length)
+    setPage(1)
+  }
 
   // garante que page não ultrapasse totalPages
   const currentPage = Math.min(page, totalPages)

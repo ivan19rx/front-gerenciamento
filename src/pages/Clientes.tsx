@@ -1,11 +1,10 @@
-import { useState } from 'react'
 import { DataTable, ActionMenu } from '../components/DataTable'
 import type { StatusType, Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
-import { Modal, ConfirmDialog, Field, Input, Select } from '../components/Modal'
-import { useFetch } from '../hooks/useFetch'
-import { API_BASE_URL } from '../config'
+import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../components/Modal'
+import { useCrud } from '../hooks/useCrud'
+import { formatDateLong } from '../utils/format'
 import { C } from '../theme'
 
 
@@ -37,18 +36,14 @@ interface FormState {
 const EMPTY_FORM: FormState = { nome: '', saldo: '', ativo: 'true' }
 
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
 function mapToRow(item: FornecedorCliente): ClienteRow {
   return {
     id: item.id,
     nome: item.nome,
     saldo: item.saldo,
     status: item.ativo ? 'Ativo' : 'Inativo',
-    cadastro: formatDate(item.criadoEm),
-    atualizado: formatDate(item.atualizadoEm),
+    cadastro: formatDateLong(item.criadoEm),
+    atualizado: formatDateLong(item.atualizadoEm),
     _raw: item,
   }
 }
@@ -80,6 +75,7 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
 interface ClienteFormProps {
   form: FormState
   errors: Partial<FormState>
+  serverError: string | null
   submitting: boolean
   onChange: (f: FormState) => void
   onSubmit: () => void
@@ -87,9 +83,10 @@ interface ClienteFormProps {
   isEdit: boolean
 }
 
-function ClienteForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit }: ClienteFormProps) {
+function ClienteForm({ form, errors, serverError, submitting, onChange, onSubmit, onCancel, isEdit }: ClienteFormProps) {
   return (
     <>
+      <FormError message={serverError} />
       <Field label="Nome" error={errors.nome}>
         <Input
           placeholder="Nome do cliente"
@@ -137,99 +134,15 @@ function ClienteForm({ form, errors, submitting, onChange, onSubmit, onCancel, i
 
 
 export default function Clientes() {
-  const { data, loading, error, refetch } = useFetch<FornecedorCliente[]>('/fornecedores-clientes')
+  const crud = useCrud<FornecedorCliente, FormState>({
+    endpoint: '/fornecedores-clientes',
+    emptyForm: EMPTY_FORM,
+    toForm: raw => ({ nome: raw.nome, saldo: raw.saldo, ativo: String(raw.ativo) }),
+    buildBody: f => ({ nome: f.nome, saldo: f.saldo, ativo: f.ativo === 'true' }),
+    validate,
+  })
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<FornecedorCliente | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<FornecedorCliente | null>(null)
-
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [formErrors, setFormErrors] = useState<Partial<FormState>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
-  const rows = data ? data.map(mapToRow) : []
-
-
-  function openCreate() {
-    setForm(EMPTY_FORM)
-    setFormErrors({})
-    setCreateOpen(true)
-  }
-
-  function openEdit(raw: FornecedorCliente) {
-    setForm({ nome: raw.nome, saldo: raw.saldo, ativo: String(raw.ativo) })
-    setFormErrors({})
-    setEditTarget(raw)
-  }
-
-  function openDelete(raw: FornecedorCliente) {
-    setDeleteTarget(raw)
-  }
-
-  // ── POST ────────────────────────────────────────────────────────
-
-  async function handleCreate() {
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setFormErrors(errs); return }
-    setSubmitting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/fornecedores-clientes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: form.nome, saldo: form.saldo, ativo: form.ativo === 'true' }),
-      })
-      if (!res.ok) throw new Error(`Erro ${res.status}`)
-      setCreateOpen(false)
-      refetch()
-    } catch (e: any) {
-      setFormErrors({ nome: e.message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // ── PUT ─────────────────────────────────────────────────────────
-
-  async function handleEdit() {
-    const errs = validate(form)
-    if (Object.keys(errs).length) { setFormErrors(errs); return }
-    if (!editTarget) return
-    setSubmitting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/fornecedores-clientes/${editTarget.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: form.nome, saldo: form.saldo, ativo: form.ativo === 'true' }),
-      })
-      if (!res.ok) throw new Error(`Erro ${res.status}`)
-      setEditTarget(null)
-      refetch()
-    } catch (e: any) {
-      setFormErrors({ nome: e.message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // ── DELETE ──────────────────────────────────────────────────────
-
-  async function handleDelete() {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/fornecedores-clientes/${deleteTarget.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(`Erro ${res.status}`)
-      setDeleteTarget(null)
-      refetch()
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  // ── Colunas ─────────────────────────────────────────────────────
+  const rows = crud.data ? crud.data.map(mapToRow) : []
 
   const columns: Column<ClienteRow>[] = [
     { key: 'nome', label: 'Nome', render: r => <strong style={{ fontWeight: 500 }}>{r.nome}</strong> },
@@ -239,55 +152,53 @@ export default function Clientes() {
     {
       key: 'acao', label: 'Ação', align: 'right', render: r => (
         <RowActions
-          onEdit={() => openEdit(r._raw)}
-          onDelete={() => openDelete(r._raw)}
+          onEdit={() => crud.openEdit(r._raw)}
+          onDelete={() => crud.openDelete(r._raw)}
         />
       )
     },
   ]
 
-  // ── Render ──────────────────────────────────────────────────────
-
   return (
     <>
       <PageWrapper
         title="Clientes"
-        subtitle={data ? `${data.length} cliente(s) encontrado(s)` : 'Gerencie seus clientes cadastrados'}
-        action={<AddButton onClick={openCreate} />}
+        subtitle={crud.data ? `${crud.data.length} cliente(s) encontrado(s)` : 'Gerencie seus clientes cadastrados'}
+        action={<AddButton onClick={crud.openCreate} />}
       >
-        {loading && <LoadingState message="Carregando clientes..." />}
-        {error && <ErrorState message={error} onRetry={refetch} />}
-        {!loading && !error && rows.length === 0 && <EmptyState message="Nenhum cliente cadastrado." />}
-        {!loading && !error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} />}
+        {crud.loading && <LoadingState message="Carregando clientes..." />}
+        {crud.error && <ErrorState message={crud.error} onRetry={crud.refetch} />}
+        {!crud.loading && !crud.error && rows.length === 0 && <EmptyState message="Nenhum cliente cadastrado." />}
+        {!crud.loading && !crud.error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} />}
       </PageWrapper>
 
       {/* Modal — Novo cliente */}
-      <Modal open={createOpen} title="Novo Cliente" onClose={() => setCreateOpen(false)}>
+      <Modal open={crud.createOpen} title="Novo Cliente" onClose={crud.closeCreate}>
         <ClienteForm
-          form={form} errors={formErrors} submitting={submitting}
-          onChange={setForm} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)}
+          form={crud.form} errors={crud.formErrors} serverError={crud.serverError} submitting={crud.submitting}
+          onChange={crud.setForm} onSubmit={crud.submitCreate} onCancel={crud.closeCreate}
           isEdit={false}
         />
       </Modal>
 
       {/* Modal — Editar cliente */}
-      <Modal open={!!editTarget} title="Editar Cliente" onClose={() => setEditTarget(null)}>
+      <Modal open={!!crud.editTarget} title="Editar Cliente" onClose={crud.closeEdit}>
         <ClienteForm
-          form={form} errors={formErrors} submitting={submitting}
-          onChange={setForm} onSubmit={handleEdit} onCancel={() => setEditTarget(null)}
+          form={crud.form} errors={crud.formErrors} serverError={crud.serverError} submitting={crud.submitting}
+          onChange={crud.setForm} onSubmit={crud.submitEdit} onCancel={crud.closeEdit}
           isEdit
         />
       </Modal>
 
       {/* Confirmação — Excluir */}
       <ConfirmDialog
-        open={!!deleteTarget}
+        open={!!crud.deleteTarget}
         title="Excluir cliente"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir "${crud.deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Sim, excluir"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-        loading={deleting}
+        onConfirm={crud.confirmDelete}
+        onCancel={crud.closeDelete}
+        loading={crud.deleting}
       />
     </>
   )

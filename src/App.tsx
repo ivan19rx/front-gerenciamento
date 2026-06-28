@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Layout } from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Clientes from './pages/Clientes'
@@ -12,8 +13,9 @@ import Empresas from './components/admin/Empresas'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="clientes"        element={<Clientes />} />
@@ -28,7 +30,8 @@ export default function App() {
         </Route>
 
         <Route path="/login" element={<Login />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }

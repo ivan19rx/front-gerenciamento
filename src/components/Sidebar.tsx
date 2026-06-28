@@ -288,18 +288,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <span style={{ fontSize: 14, fontWeight: 500, color: '#DC2626' }}>Sair</span>
           </button>
         )}
-        <div
+        <button
           onClick={() => setUserMenuOpen(o => !o)}
-          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', background: userMenuOpen ? C.hoverItem : 'transparent' }}
+          aria-expanded={userMenuOpen}
+          aria-label="Menu do usuário"
+          style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', background: userMenuOpen ? C.hoverItem : 'transparent', border: 'none', textAlign: 'left', font: 'inherit' }}
           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = userMenuOpen ? C.hoverItem : 'transparent'}
         >
-          <img src="" alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', outline: `2px solid ${C.gold}44`, background: C.activeItem }} />
+          <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, outline: `2px solid ${C.gold}44`, background: C.activeItem }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>LS</span>
+          </div>
           <span style={{ fontSize: 14, fontWeight: 500, color: C.userText, flex: 1 }}>Leiliane Soares</span>
           <svg style={{ width: 16, height: 16, flexShrink: 0, color: C.mutedIcon, transition: 'transform 0.2s', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </button>
       </div>
     </aside>
   )

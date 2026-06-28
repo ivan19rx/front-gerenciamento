@@ -3,6 +3,7 @@ import { Logo } from '../components/Logo'
 import { C } from '../theme'
 
 interface InputFieldProps {
+  id: string
   label: string
   type?: string
   placeholder: string
@@ -10,14 +11,15 @@ interface InputFieldProps {
   onChange: (v: string) => void
 }
 
-function InputField({ label, type = 'text', placeholder, value, onChange }: InputFieldProps) {
+function InputField({ id, label, type = 'text', placeholder, value, onChange }: InputFieldProps) {
   const [focused, setFocused] = useState(false)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontSize: 13, fontWeight: 600, color: '#EDE8D8', letterSpacing: '0.02em' }}>
+      <label htmlFor={id} style={{ fontSize: 13, fontWeight: 600, color: '#EDE8D8', letterSpacing: '0.02em' }}>
         {label}
       </label>
       <input
+        id={id}
         type={type}
         placeholder={placeholder}
         value={value}
@@ -79,9 +81,9 @@ export default function Login() {
         </div>
 
         {/* Formulário */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <InputField label="E-mail" type="email" placeholder="seu@email.com" value={email} onChange={setEmail} />
-          <InputField label="Senha" type="password" placeholder="••••••••" value={senha} onChange={setSenha} />
+        <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <InputField id="email" label="E-mail" type="email" placeholder="seu@email.com" value={email} onChange={setEmail} />
+          <InputField id="senha" label="Senha" type="password" placeholder="••••••••" value={senha} onChange={setSenha} />
 
           <div style={{ textAlign: 'right', marginTop: -8 }}>
             <a href="#" style={{ fontSize: 12, color: C.mutedText, textDecoration: 'none', fontWeight: 500 }}
@@ -93,6 +95,7 @@ export default function Login() {
           </div>
 
           <button
+            type="submit"
             style={{
               marginTop: 4,
               padding: '12px 0',
@@ -111,7 +114,7 @@ export default function Login() {
           >
             Entrar
           </button>
-        </div>
+        </form>
 
       </div>
     </div>

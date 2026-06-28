@@ -133,9 +133,11 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
             <span style={{ fontSize: 14, fontWeight: 500, color: '#DC2626' }}>Sair</span>
           </button>
         )}
-        <div
+        <button
           onClick={() => setUserMenuOpen(o => !o)}
-          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', background: userMenuOpen ? C.hoverItem : 'transparent' }}
+          aria-expanded={userMenuOpen}
+          aria-label="Menu do usuário"
+          style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 12px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', background: userMenuOpen ? C.hoverItem : 'transparent', border: 'none', textAlign: 'left', font: 'inherit' }}
           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = userMenuOpen ? C.hoverItem : 'transparent'}
         >
@@ -149,7 +151,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
           <svg style={{ width: 16, height: 16, flexShrink: 0, color: C.mutedIcon, transition: 'transform 0.2s', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </button>
       </div>
     </aside>
   )

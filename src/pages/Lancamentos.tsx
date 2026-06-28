@@ -3,9 +3,11 @@ import { DataTable, ActionMenu } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
-import { Modal, ConfirmDialog, Field, Input, Select } from '../components/Modal'
+import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../components/Modal'
+import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { API_BASE_URL } from '../config'
+import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/format'
 import { C } from '../theme'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -51,22 +53,6 @@ const EMPTY_FORM: FormState = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-// Interpreta datas "YYYY-MM-DD" como data local (e não UTC), evitando que a
-// virada de fuso jogue um lançamento para o mês/dia anterior.
-function parseDataLocal(iso: string): Date {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-  return new Date(iso)
-}
-
-function formatDate(iso: string) {
-  return parseDataLocal(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function moeda(valor: number) {
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
 function getMesAnoKey(iso: string) {
   const d = parseDataLocal(iso)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -90,31 +76,6 @@ function validate(form: FormState) {
 }
 
 // ── Células ──────────────────────────────────────────────────────────────────
-
-function TipoCell({ tipo }: { tipo: 'ENTRADA' | 'SAIDA' }) {
-  const isEntrada = tipo === 'ENTRADA'
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      fontSize: 12, fontWeight: 600,
-      color: isEntrada ? '#16a34a' : '#dc2626',
-      background: isEntrada ? '#dcfce7' : '#fee2e2',
-      padding: '3px 10px', borderRadius: 999,
-    }}>
-      {isEntrada ? '▲ Entrada' : '▼ Saída'}
-    </span>
-  )
-}
-
-function ValorCell({ valor, tipo }: { valor: string; tipo: 'ENTRADA' | 'SAIDA' }) {
-  const num = parseFloat(valor) || 0
-  const isEntrada = tipo === 'ENTRADA'
-  return (
-    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: isEntrada ? '#16a34a' : '#dc2626' }}>
-      {isEntrada ? '+ ' : '- '}{moeda(Math.abs(num))}
-    </span>
-  )
-}
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
@@ -203,12 +164,7 @@ function LancamentoForm({ form, errors, serverError, submitting, onChange, onSub
 
   return (
     <>
-      {serverError && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }}>⚠️</span>
-          <span style={{ color: '#DC2626', fontSize: 13, fontWeight: 500 }}>{serverError}</span>
-        </div>
-      )}
+      <FormError message={serverError} />
       <div style={row2}>
         <Field label="Tipo" error={errors.tipo}>
           <Select value={form.tipo} onChange={e => onChange({ ...form, tipo: (e.target as HTMLSelectElement).value as 'ENTRADA' | 'SAIDA' })}>
@@ -405,8 +361,8 @@ export default function Lancamentos() {
       if (!res.ok) throw new Error(await extrairErro(res))
       setCreateOpen(false)
       refetch()
-    } catch (e: any) {
-      setServerError(e.message)
+    } catch (e) {
+      setServerError(getErrorMessage(e))
     } finally {
       setSubmitting(false)
     }
@@ -427,8 +383,8 @@ export default function Lancamentos() {
       if (!res.ok) throw new Error(await extrairErro(res))
       setEditTarget(null)
       refetch()
-    } catch (e: any) {
-      setServerError(e.message)
+    } catch (e) {
+      setServerError(getErrorMessage(e))
     } finally {
       setSubmitting(false)
     }
