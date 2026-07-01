@@ -1,6 +1,17 @@
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { C } from '../theme'
+import { useAuth } from '../auth/useAuth'
+import { authStore } from '../auth/store'
+import { SessionTime } from '../auth/SessionTime'
+
+// Iniciais a partir do nome da empresa (ex: "Alfa Comércio" → "AC").
+function iniciais(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean)
+  if (partes.length === 0) return '?'
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
+}
 
 
 
@@ -213,6 +224,19 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const navigate = useNavigate()
+  const auth = useAuth()
+
+  // Empresa exibida: a própria (login de empresa) ou a empresa que o admin
+  // está acessando (impersonação).
+  const empresa = auth.role === 'ADMIN' ? auth.selectedEmpresa : auth.empresa
+  const nomeEmpresa = empresa?.nomeFantasia || empresa?.razaoSocial || 'Empresa'
+
+  function handleLogout() {
+    authStore.logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <aside style={{
       width: 272,
@@ -271,22 +295,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* User */}
       <div style={{ padding: '8px 12px 20px' }}>
         {userMenuOpen && (
-          <button
-            onClick={() => { /* logout estático por enquanto */ }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              padding: '10px 12px', marginBottom: 4, borderRadius: 8,
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              textAlign: 'left', transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-          >
-            <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="none" stroke="#DC2626" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span style={{ fontSize: 14, fontWeight: 500, color: '#DC2626' }}>Sair</span>
-          </button>
+          <>
+            <SessionTime style={{ display: 'block', padding: '4px 12px 8px', fontSize: 12, color: C.mutedText }} />
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                padding: '10px 12px', marginBottom: 4, borderRadius: 8,
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                textAlign: 'left', transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+            >
+              <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="none" stroke="#DC2626" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span style={{ fontSize: 14, fontWeight: 500, color: '#DC2626' }}>Sair</span>
+            </button>
+          </>
         )}
         <button
           onClick={() => setUserMenuOpen(o => !o)}
@@ -297,9 +324,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = userMenuOpen ? C.hoverItem : 'transparent'}
         >
           <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, outline: `2px solid ${C.gold}44`, background: C.activeItem }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>LS</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{iniciais(nomeEmpresa)}</span>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 500, color: C.userText, flex: 1 }}>Leiliane Soares</span>
+          <span style={{ fontSize: 14, fontWeight: 500, color: C.userText, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nomeEmpresa}</span>
           <svg style={{ width: 16, height: 16, flexShrink: 0, color: C.mutedIcon, transition: 'transform 0.2s', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>

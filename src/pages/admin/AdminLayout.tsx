@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AdminSidebar } from '../../components/admin/AdminSidebar'
+import { authStore } from '../../auth/store'
 import { C } from '../../theme'
 
 export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  // Entrar no painel encerra qualquer visualização de empresa em andamento.
+  useEffect(() => {
+    authStore.clearSelectedEmpresa()
+  }, [])
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.mainBg }}>

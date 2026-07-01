@@ -1,6 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { C } from '../theme'
+import { API_BASE_URL } from '../config'
+import { authStore } from '../auth/store'
+import { getErrorMessage } from '../utils/format'
+
+type Modo = 'EMPRESA' | 'ADMIN'
 
 interface InputFieldProps {
   id: string
@@ -43,9 +49,105 @@ function InputField({ id, label, type = 'text', placeholder, value, onChange }: 
   )
 }
 
+// Alternância entre os dois tipos de login.
+function ModeTabs({ modo, onChange }: { modo: Modo; onChange: (m: Modo) => void }) {
+  const tab = (m: Modo, label: string) => {
+    const ativo = modo === m
+    return (
+      <button
+        type="button"
+        onClick={() => onChange(m)}
+        style={{
+          flex: 1,
+          padding: '9px 0',
+          borderRadius: 8,
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: 13,
+          fontWeight: 700,
+          letterSpacing: '0.02em',
+          background: ativo ? C.activeItem : 'transparent',
+          color: ativo ? C.activeIcon : C.mutedText,
+          transition: 'background 0.15s, color 0.15s',
+        }}
+      >
+        {label}
+      </button>
+    )
+  }
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 4,
+      padding: 4,
+      borderRadius: 10,
+      background: '#0F2D25',
+      border: '1px solid #1E4538',
+      marginBottom: 24,
+    }}>
+      {tab('EMPRESA', 'Empresa')}
+      {tab('ADMIN', 'Administrador')}
+    </div>
+  )
+}
+
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const navigate = useNavigate()
+  const [modo, setModo] = useState<Modo>('EMPRESA')
+  const [identificador, setIdentificador] = useState('')
   const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+
+  const isAdmin = modo === 'ADMIN'
+
+  function trocarModo(m: Modo) {
+    setModo(m)
+    setErro(null)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (enviando) return
+    setErro(null)
+
+    if (!identificador.trim() || !senha) {
+      setErro('Preencha todos os campos.')
+      return
+    }
+
+    setEnviando(true)
+    try {
+      const path = isAdmin ? '/auth/admin/login' : '/auth/login'
+      const body = isAdmin
+        ? { email: identificador.trim(), senha }
+        : { identificador: identificador.trim(), senha }
+
+      const res = await fetch(`${API_BASE_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        throw new Error(data?.message ?? 'Não foi possível entrar.')
+      }
+
+      if (isAdmin) {
+        authStore.loginAdmin(data.token, data.admin)
+        navigate('/admin', { replace: true })
+      } else {
+        authStore.loginEmpresa(data.token, data.empresa)
+        navigate('/', { replace: true })
+      }
+    } catch (err) {
+      setErro(getErrorMessage(err))
+    } finally {
+      setEnviando(false)
+    }
+  }
 
   return (
     <div style={{
@@ -68,7 +170,7 @@ export default function Login() {
       }}>
 
         {/* Logo + título */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <Logo size={44} />
           </div>
@@ -76,26 +178,40 @@ export default function Login() {
             Bem-vindo de volta
           </h1>
           <p style={{ margin: 0, fontSize: 14, color: C.mutedText }}>
-            Entre na sua conta para continuar
+            {isAdmin ? 'Acesso do administrador' : 'Entre na sua conta para continuar'}
           </p>
         </div>
 
+        <ModeTabs modo={modo} onChange={trocarModo} />
+
         {/* Formulário */}
-        <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <InputField id="email" label="E-mail" type="email" placeholder="seu@email.com" value={email} onChange={setEmail} />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <InputField
+            id="identificador"
+            label={isAdmin ? 'E-mail' : 'CNPJ ou e-mail'}
+            type={isAdmin ? 'email' : 'text'}
+            placeholder={isAdmin ? 'admin@sistema.com' : 'CNPJ ou seu@email.com'}
+            value={identificador}
+            onChange={setIdentificador}
+          />
           <InputField id="senha" label="Senha" type="password" placeholder="••••••••" value={senha} onChange={setSenha} />
 
-          <div style={{ textAlign: 'right', marginTop: -8 }}>
-            <a href="#" style={{ fontSize: 12, color: C.mutedText, textDecoration: 'none', fontWeight: 500 }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = C.activeIcon}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = C.mutedText}
-            >
-              Esqueceu a senha?
-            </a>
-          </div>
+          {erro && (
+            <div style={{
+              background: '#3A1212',
+              border: '1px solid #7A2A2A',
+              color: '#F3B5B5',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 13,
+            }}>
+              {erro}
+            </div>
+          )}
 
           <button
             type="submit"
+            disabled={enviando}
             style={{
               marginTop: 4,
               padding: '12px 0',
@@ -105,14 +221,15 @@ export default function Login() {
               color: C.activeIcon,
               fontSize: 15,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: enviando ? 'not-allowed' : 'pointer',
+              opacity: enviando ? 0.7 : 1,
               transition: 'opacity 0.15s',
               letterSpacing: '0.02em',
             }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+            onMouseEnter={e => { if (!enviando) (e.currentTarget as HTMLElement).style.opacity = '0.85' }}
+            onMouseLeave={e => { if (!enviando) (e.currentTarget as HTMLElement).style.opacity = '1' }}
           >
-            Entrar
+            {enviando ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 

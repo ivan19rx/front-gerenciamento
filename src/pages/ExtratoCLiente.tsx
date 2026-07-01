@@ -5,7 +5,7 @@ import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
 import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
-import { API_BASE_URL } from '../config'
+import { apiFetch } from '../auth/api'
 import { formatDate, moeda } from '../utils/format'
 import { C } from '../theme'
 
@@ -67,7 +67,7 @@ function buildUrl(filtros: Filtros): string {
   if (filtros.contaId) params.set('contaId', filtros.contaId)
   if (filtros.categoriaId) params.set('categoriaId', filtros.categoriaId)
   params.set('tipo', filtros.tipo || 'TODOS')
-  return `${API_BASE_URL}/lancamentos/filtros?${params.toString()}`
+  return `/lancamentos/filtros?${params.toString()}`
 }
 
 // Calcula o resumo a partir das linhas realmente exibidas, mantendo os cards
@@ -252,7 +252,7 @@ export default function ExtratoCliente() {
     const url = buildUrl(filtros)
     setLoading(true)
     setError(null)
-    fetch(url)
+    apiFetch(url)
       .then(res => {
         if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`)
         return res.json()

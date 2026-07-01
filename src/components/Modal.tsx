@@ -1,6 +1,14 @@
 import { useEffect, useId, useRef } from 'react'
 import { C } from '../theme'
 
+// Mantém uma referência sempre atualizada de um valor sem entrar nas
+// dependências de efeitos (evita re-execuções a cada render).
+function useLatest<T>(value: T) {
+  const ref = useRef(value)
+  useEffect(() => { ref.current = value })
+  return ref
+}
+
 interface ModalProps {
   open: boolean
   title: string
@@ -16,9 +24,12 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
   const overlayRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  // onClose via ref: assim o efeito abaixo depende só de `open` e NÃO re-roda a
+  // cada render (o que reposicionaria o foco no botão "x" a cada tecla).
+  const onCloseRef = useLatest(onClose)
 
   // Acessibilidade: fecha com ESC, prende o foco dentro do diálogo (Tab/Shift+Tab)
-  // e restaura o foco ao elemento anterior quando fecha.
+  // e restaura o foco ao elemento anterior quando fecha. Roda uma vez por abertura.
   useEffect(() => {
     if (!open) return
     const previouslyFocused = document.activeElement as HTMLElement | null
@@ -31,7 +42,7 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
     ;(focusables[0] ?? dialogRef.current)?.focus()
 
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return }
+      if (e.key === 'Escape') { onCloseRef.current(); return }
       if (e.key !== 'Tab') return
       const items = getFocusables()
       if (items.length === 0) { e.preventDefault(); return }
@@ -48,7 +59,7 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
       window.removeEventListener('keydown', handler)
       previouslyFocused?.focus?.()
     }
-  }, [open, onClose])
+  }, [open, onCloseRef])
 
   // trava scroll do body
   useEffect(() => {

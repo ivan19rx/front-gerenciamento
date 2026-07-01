@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useFetch } from './useFetch'
-import { API_BASE_URL } from '../config'
+import { apiFetch } from '../auth/api'
 import { getErrorMessage } from '../utils/format'
 
 type Errors<F> = Partial<Record<keyof F, string>>
@@ -58,9 +58,10 @@ export function useCrud<T extends { id: number }, F>({
     return true
   }
 
-  // Faz a requisição e lança Error com mensagem amigável em caso de falha.
-  async function request(url: string, method: string, body?: unknown) {
-    const res = await fetch(url, {
+  // Faz a requisição (com token/empresa anexados) e lança Error com mensagem
+  // amigável em caso de falha. `path` começa com '/', ex: '/categorias'.
+  async function request(path: string, method: string, body?: unknown) {
+    const res = await apiFetch(path, {
       method,
       headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -76,7 +77,7 @@ export function useCrud<T extends { id: number }, F>({
     if (!isValid()) return
     setSubmitting(true); setServerError(null)
     try {
-      await request(`${API_BASE_URL}${endpoint}`, 'POST', buildBody(form))
+      await request(endpoint, 'POST', buildBody(form))
       setCreateOpen(false); refetch()
     } catch (e) {
       setServerError(getErrorMessage(e))
@@ -90,7 +91,7 @@ export function useCrud<T extends { id: number }, F>({
     if (!isValid()) return
     setSubmitting(true); setServerError(null)
     try {
-      await request(`${API_BASE_URL}${endpoint}/${editTarget.id}`, editMethod, buildBody(form))
+      await request(`${endpoint}/${editTarget.id}`, editMethod, buildBody(form))
       setEditTarget(null); refetch()
     } catch (e) {
       setServerError(getErrorMessage(e))
@@ -103,7 +104,7 @@ export function useCrud<T extends { id: number }, F>({
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await request(`${API_BASE_URL}${endpoint}/${deleteTarget.id}`, 'DELETE')
+      await request(`${endpoint}/${deleteTarget.id}`, 'DELETE')
       setDeleteTarget(null); refetch()
     } catch (e) {
       console.error(e)

@@ -1,11 +1,17 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { DataTable, StatusBadge, ActionMenu } from '../../components/DataTable'
 import type {  Column } from '../../components/DataTable'
 import { PageWrapper } from '../../components/PageWrapper'
-import { Modal, ConfirmDialog, Field, Input } from '../../components/Modal'
+import { Modal, ConfirmDialog, Field, Input, FormError } from '../../components/Modal'
+import { LoadingState, ErrorState } from '../../components/TableState'
+import { useFetch } from '../../hooks/useFetch'
+import { apiFetch, apiFetchJson } from '../../auth/api'
+import { authStore } from '../../auth/store'
+import { formatDateLong, getErrorMessage } from '../../utils/format'
 import { C } from '../../theme'
 
-// ── Tipos (mock — sem integração com API ainda) ───────────────────────────────
+// ── Tipos ──────────────────────────────────────────────────────────────────
 
 interface Empresa {
   id: number
@@ -46,58 +52,6 @@ const EMPTY_FORM: FormState = {
   confirmarSenha: '',
 }
 
-// Dados mock só para visualização do layout
-const EMPRESAS_MOCK: Empresa[] = [
-  {
-    id: 1,
-    razaoSocial: 'Castanha do Pará Comércio Ltda',
-    nomeFantasia: 'Castanha Pará',
-    cnpj: '12345678000190',
-    inscricaoEstadual: '123456789',
-    inscricaoMunicipal: null,
-    endereco: 'Rua das Castanheiras, 120 - Belém, PA',
-    email: 'contato@castanhapara.com',
-    ativo: true,
-    criadoEm: '12 Jan 2026',
-  },
-  {
-    id: 2,
-    razaoSocial: 'Distribuidora Ivan Eireli',
-    nomeFantasia: 'Distribuidora Ivan',
-    cnpj: '98765432000111',
-    inscricaoEstadual: null,
-    inscricaoMunicipal: '55667788',
-    endereco: 'Av. Comercial, 540 - Fortaleza, CE',
-    email: 'financeiro@ivan.com.br',
-    ativo: true,
-    criadoEm: '03 Mar 2026',
-  },
-  {
-    id: 3,
-    razaoSocial: 'Comércio Breno EIRELI',
-    nomeFantasia: null,
-    cnpj: null,
-    inscricaoEstadual: null,
-    inscricaoMunicipal: null,
-    endereco: null,
-    email: 'breno@comercio.com',
-    ativo: false,
-    criadoEm: '20 Abr 2026',
-  },
-  {
-    id: 4,
-    razaoSocial: 'Carlos Materiais ME',
-    nomeFantasia: 'Carlos Materiais',
-    cnpj: '11222333000144',
-    inscricaoEstadual: '998877665',
-    inscricaoMunicipal: null,
-    endereco: 'Rua dos Materiais, 88 - Horizonte, CE',
-    email: 'carlos@materiais.com.br',
-    ativo: true,
-    criadoEm: '15 Mai 2026',
-  },
-]
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatCNPJ(cnpj: string | null) {
@@ -113,6 +67,11 @@ function validate(form: FormState, isEdit: boolean) {
   if (!form.email.trim())       errors.email       = 'E-mail é obrigatório'
   else if (!/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'E-mail inválido'
 
+  // CNPJ é obrigatório no cadastro (a API exige 14 dígitos)
+  const cnpjDigitos = form.cnpj.replace(/\D/g, '')
+  if (!isEdit && !cnpjDigitos) errors.cnpj = 'CNPJ é obrigatório'
+  else if (cnpjDigitos && cnpjDigitos.length !== 14) errors.cnpj = 'CNPJ deve ter 14 dígitos'
+
   if (!isEdit) {
     if (!form.senha) errors.senha = 'Senha é obrigatória'
     else if (form.senha.length < 6) errors.senha = 'Mínimo 6 caracteres'
@@ -122,6 +81,27 @@ function validate(form: FormState, isEdit: boolean) {
   }
 
   return errors
+}
+
+// Monta o corpo enviado à API a partir do formulário.
+function buildBody(form: FormState, isEdit: boolean): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    razaoSocial: form.razaoSocial.trim(),
+    nomeFantasia: form.nomeFantasia.trim() || null,
+    cnpj: form.cnpj.replace(/\D/g, ''),
+    inscricaoEstadual: form.inscricaoEstadual.trim() || null,
+    inscricaoMunicipal: form.inscricaoMunicipal.trim() || null,
+    endereco: form.endereco.trim() || null,
+    email: form.email.trim(),
+  }
+  if (isEdit) {
+    body.ativo = form.ativo === 'true'
+    // Senha só é enviada quando o admin digitou uma nova.
+    if (form.senha) body.senha = form.senha
+  } else {
+    body.senha = form.senha
+  }
+  return body
 }
 
 // ── Botões de Ação ───────────────────────────────────────────────────────────
@@ -152,6 +132,7 @@ function RowActions({ onAccess, onEdit, onDelete }: { onAccess: () => void; onEd
 interface EmpresaFormProps {
   form: FormState
   errors: Partial<FormState>
+  serverError: string | null
   submitting: boolean
   onChange: (f: FormState) => void
   onSubmit: () => void
@@ -159,7 +140,7 @@ interface EmpresaFormProps {
   isEdit: boolean
 }
 
-function EmpresaForm({ form, errors, submitting, onChange, onSubmit, onCancel, isEdit }: EmpresaFormProps) {
+function EmpresaForm({ form, errors, serverError, submitting, onChange, onSubmit, onCancel, isEdit }: EmpresaFormProps) {
   const row2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
 
   return (
@@ -174,8 +155,8 @@ function EmpresaForm({ form, errors, submitting, onChange, onSubmit, onCancel, i
           <Input placeholder="Opcional" value={form.nomeFantasia}
             onChange={e => onChange({ ...form, nomeFantasia: (e.target as HTMLInputElement).value })} />
         </Field>
-        <Field label="CNPJ">
-          <Input placeholder="00.000.000/0000-00" value={form.cnpj}
+        <Field label="CNPJ" error={errors.cnpj}>
+          <Input placeholder="00.000.000/0000-00" value={form.cnpj} error={!!errors.cnpj}
             onChange={e => onChange({ ...form, cnpj: (e.target as HTMLInputElement).value })} />
         </Field>
       </div>
@@ -217,6 +198,8 @@ function EmpresaForm({ form, errors, submitting, onChange, onSubmit, onCancel, i
             onChange={e => onChange({ ...form, confirmarSenha: (e.target as HTMLInputElement).value })} />
         </Field>
       </div>
+
+      <FormError message={serverError} />
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
         <button onClick={onCancel} disabled={submitting}
@@ -297,32 +280,12 @@ function SearchSortBar({ search, onSearchChange, sortAsc, onToggleSort }: {
   )
 }
 
-// ── Banner de aviso (impersonation é só visual aqui) ──────────────────────────
-
-function AccessNotice({ empresa, onClose }: { empresa: Empresa; onClose: () => void }) {
-  return (
-    <div style={{
-      background: '#FFF7E6', border: '1px solid #F5D98C', borderRadius: 10,
-      padding: '12px 16px', marginBottom: 16,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 18 }}>🔑</span>
-        <p style={{ margin: 0, fontSize: 13, color: '#92660A' }}>
-          Em breve: ao clicar em <strong>Acessar</strong>, você entrará nos dados de <strong>{empresa.nomeFantasia ?? empresa.razaoSocial}</strong> sem precisar de login/senha.
-        </p>
-      </div>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92660A', fontSize: 13, fontWeight: 600 }}>
-        Entendi
-      </button>
-    </div>
-  )
-}
-
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default function Empresas() {
-  const [empresas, setEmpresas] = useState<Empresa[]>(EMPRESAS_MOCK)
+  const navigate = useNavigate()
+  const { data, loading, error, refetch } = useFetch<Empresa[]>('/empresas')
+  const empresas = useMemo(() => data ?? [], [data])
 
   const [search, setSearch]   = useState('')
   const [sortAsc, setSortAsc] = useState(true)
@@ -330,12 +293,13 @@ export default function Empresas() {
   const [createOpen,   setCreateOpen]   = useState(false)
   const [editTarget,   setEditTarget]   = useState<Empresa | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null)
-  const [accessNotice, setAccessNotice] = useState<Empresa | null>(null)
 
-  const [form,       setForm]       = useState<FormState>(EMPTY_FORM)
-  const [formErrors, setFormErrors] = useState<Partial<FormState>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting,   setDeleting]   = useState(false)
+  const [form,        setForm]        = useState<FormState>(EMPTY_FORM)
+  const [formErrors,  setFormErrors]  = useState<Partial<FormState>>({})
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [submitting,  setSubmitting]  = useState(false)
+  const [deleting,    setDeleting]    = useState(false)
 
   // filtra por busca e ordena alfabeticamente por razão social
   const empresasFiltradas = useMemo(() => {
@@ -359,9 +323,22 @@ export default function Empresas() {
     )
   }, [empresas, search, sortAsc])
 
+  // ADMIN entra nos dados da empresa: registra a empresa-alvo e vai para "/".
+  function acessar(empresa: Empresa) {
+    authStore.selectEmpresa({
+      id: empresa.id,
+      cnpj: empresa.cnpj,
+      razaoSocial: empresa.razaoSocial,
+      nomeFantasia: empresa.nomeFantasia,
+      email: empresa.email,
+    })
+    navigate('/')
+  }
+
   function openCreate() {
     setForm(EMPTY_FORM)
     setFormErrors({})
+    setServerError(null)
     setCreateOpen(true)
   }
 
@@ -379,62 +356,65 @@ export default function Empresas() {
       confirmarSenha: '',
     })
     setFormErrors({})
+    setServerError(null)
     setEditTarget(empresa)
   }
 
-  function handleCreate() {
-    const errs = validate(form, false)
-    if (Object.keys(errs).length) { setFormErrors(errs); return }
-    setSubmitting(true)
-    setTimeout(() => {
-      const novo: Empresa = {
-        id: Math.max(0, ...empresas.map(e => e.id)) + 1,
-        razaoSocial: form.razaoSocial,
-        nomeFantasia: form.nomeFantasia.trim() || null,
-        cnpj: form.cnpj.trim() || null,
-        inscricaoEstadual: form.inscricaoEstadual.trim() || null,
-        inscricaoMunicipal: form.inscricaoMunicipal.trim() || null,
-        endereco: form.endereco.trim() || null,
-        email: form.email,
-        ativo: true,
-        criadoEm: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-      }
-      setEmpresas(prev => [novo, ...prev])
-      setSubmitting(false)
-      setCreateOpen(false)
-    }, 600)
+  // Faz a requisição e lança Error com mensagem amigável em caso de falha.
+  async function mutate(path: string, method: string, body?: unknown) {
+    const res = body !== undefined
+      ? await apiFetchJson(path, method, body)
+      : await apiFetch(path, { method })
+    if (!res.ok) {
+      let message = `Erro ${res.status}`
+      try { const b = await res.json(); message = b.message ?? message } catch { /* corpo não-JSON */ }
+      throw new Error(message)
+    }
   }
 
-  function handleEdit() {
+  async function handleCreate() {
+    const errs = validate(form, false)
+    if (Object.keys(errs).length) { setFormErrors(errs); return }
+    setSubmitting(true); setServerError(null)
+    try {
+      await mutate('/empresas', 'POST', buildBody(form, false))
+      setCreateOpen(false)
+      refetch()
+    } catch (e) {
+      setServerError(getErrorMessage(e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleEdit() {
     const errs = validate(form, true)
     if (Object.keys(errs).length) { setFormErrors(errs); return }
     if (!editTarget) return
-    setSubmitting(true)
-    setTimeout(() => {
-      setEmpresas(prev => prev.map(e => e.id === editTarget.id ? {
-        ...e,
-        razaoSocial: form.razaoSocial,
-        nomeFantasia: form.nomeFantasia.trim() || null,
-        cnpj: form.cnpj.trim() || null,
-        inscricaoEstadual: form.inscricaoEstadual.trim() || null,
-        inscricaoMunicipal: form.inscricaoMunicipal.trim() || null,
-        endereco: form.endereco.trim() || null,
-        email: form.email,
-        ativo: form.ativo === 'true',
-      } : e))
-      setSubmitting(false)
+    setSubmitting(true); setServerError(null)
+    try {
+      await mutate(`/empresas/${editTarget.id}`, 'PUT', buildBody(form, true))
       setEditTarget(null)
-    }, 600)
+      refetch()
+    } catch (e) {
+      setServerError(getErrorMessage(e))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTarget) return
-    setDeleting(true)
-    setTimeout(() => {
-      setEmpresas(prev => prev.filter(e => e.id !== deleteTarget.id))
-      setDeleting(false)
+    setDeleting(true); setDeleteError(null)
+    try {
+      await mutate(`/empresas/${deleteTarget.id}`, 'DELETE')
       setDeleteTarget(null)
-    }, 500)
+      refetch()
+    } catch (e) {
+      setDeleteError(getErrorMessage(e))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const columns: Column<Empresa>[] = [
@@ -447,12 +427,12 @@ export default function Empresas() {
     { key: 'cnpj',     label: 'CNPJ',       render: r => <span style={{ color: C.tableTextMuted }}>{formatCNPJ(r.cnpj)}</span> },
     { key: 'email',    label: 'E-mail',     render: r => <span style={{ color: C.tableTextMuted }}>{r.email}</span> },
     { key: 'status',   label: 'Status',     render: r => <StatusBadge status={r.ativo ? 'Ativo' : 'Inativo'} /> },
-    { key: 'criadoEm', label: 'Cadastrada', render: r => <span style={{ color: C.tableTextMuted }}>{r.criadoEm}</span> },
+    { key: 'criadoEm', label: 'Cadastrada', render: r => <span style={{ color: C.tableTextMuted }}>{r.criadoEm ? formatDateLong(r.criadoEm) : '—'}</span> },
     { key: 'acao',     label: 'Ação',       align: 'right', render: r => (
       <RowActions
-        onAccess={() => setAccessNotice(r)}
+        onAccess={() => acessar(r)}
         onEdit={() => openEdit(r)}
-        onDelete={() => setDeleteTarget(r)}
+        onDelete={() => { setDeleteError(null); setDeleteTarget(r) }}
       />
     )},
   ]
@@ -464,8 +444,6 @@ export default function Empresas() {
         subtitle={`${empresas.length} empresa(s) cadastrada(s)`}
         action={<AddButton onClick={openCreate} />}
       >
-        {accessNotice && <AccessNotice empresa={accessNotice} onClose={() => setAccessNotice(null)} />}
-
         <SearchSortBar
           search={search}
           onSearchChange={setSearch}
@@ -473,11 +451,15 @@ export default function Empresas() {
           onToggleSort={() => setSortAsc(s => !s)}
         />
 
-        {empresasFiltradas.length === 0 ? (
+        {loading ? (
+          <LoadingState message="Carregando empresas..." />
+        ) : error ? (
+          <ErrorState message={error} onRetry={refetch} />
+        ) : empresasFiltradas.length === 0 ? (
           <div style={{ background: '#F1F5F3', border: '1px solid #E2EBE7', borderRadius: 10, padding: '40px 20px', textAlign: 'center' }}>
             <p style={{ fontSize: 32, margin: '0 0 8px' }}>🔍</p>
             <p style={{ color: '#6B8C7D', fontSize: 14, margin: 0 }}>
-              Nenhuma empresa encontrada para "{search}".
+              {search ? `Nenhuma empresa encontrada para "${search}".` : 'Nenhuma empresa cadastrada ainda.'}
             </p>
           </div>
         ) : (
@@ -486,13 +468,13 @@ export default function Empresas() {
       </PageWrapper>
 
       <Modal open={createOpen} title="Nova Empresa" onClose={() => setCreateOpen(false)} width={560}>
-        <EmpresaForm form={form} errors={formErrors} submitting={submitting}
+        <EmpresaForm form={form} errors={formErrors} serverError={serverError} submitting={submitting}
           onChange={setForm} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)}
           isEdit={false} />
       </Modal>
 
       <Modal open={!!editTarget} title="Editar Empresa" onClose={() => setEditTarget(null)} width={560}>
-        <EmpresaForm form={form} errors={formErrors} submitting={submitting}
+        <EmpresaForm form={form} errors={formErrors} serverError={serverError} submitting={submitting}
           onChange={setForm} onSubmit={handleEdit} onCancel={() => setEditTarget(null)}
           isEdit />
       </Modal>
@@ -500,7 +482,11 @@ export default function Empresas() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Excluir empresa"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.razaoSocial}"? Todos os dados financeiros dessa empresa serão perdidos. Esta ação não pode ser desfeita.`}
+        message={
+          deleteError
+            ? deleteError
+            : `Tem certeza que deseja excluir "${deleteTarget?.razaoSocial}"? Todos os dados financeiros dessa empresa serão perdidos. Esta ação não pode ser desfeita.`
+        }
         confirmLabel="Sim, excluir"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}

@@ -8,28 +8,39 @@ import Categorias from './pages/Categorias'
 import TipoDeConta from './pages/TipoDeConta'
 import ExtratoCliente from './pages/ExtratoCLiente'
 import Login from './pages/Login'
+import NotFound from './pages/NotFound'
 import { AdminLayout } from './pages/admin/AdminLayout'
 import Empresas from './components/admin/Empresas'
+import { RequireEmpresaView, RequireAdmin, RedirectIfAuthed } from './auth/guards'
 
 export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="clientes"        element={<Clientes />} />
-          <Route path="lancamentos"     element={<Lancamentos />} />
-          <Route path="categorias"      element={<Categorias />} />
-          <Route path="tipodeconta"     element={<TipoDeConta />} />
-          <Route path="extrato-cliente" element={<ExtratoCliente />} />
+        {/* Área da empresa (também acessada pelo admin ao "Acessar" uma empresa) */}
+        <Route element={<RequireEmpresaView />}>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="clientes"        element={<Clientes />} />
+            <Route path="lancamentos"     element={<Lancamentos />} />
+            <Route path="categorias"      element={<Categorias />} />
+            <Route path="tipodeconta"     element={<TipoDeConta />} />
+            <Route path="extrato-cliente" element={<ExtratoCliente />} />
+          </Route>
         </Route>
 
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Empresas />} />
+        {/* Área do administrador */}
+        <Route element={<RequireAdmin />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Empresas />} />
+          </Route>
         </Route>
 
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<RedirectIfAuthed><Login /></RedirectIfAuthed>} />
+
+        {/* Qualquer rota não reconhecida */}
+        <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

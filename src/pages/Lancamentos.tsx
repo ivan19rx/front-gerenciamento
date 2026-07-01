@@ -6,7 +6,7 @@ import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
 import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../components/Modal'
 import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
-import { API_BASE_URL } from '../config'
+import { apiFetch, apiFetchJson } from '../auth/api'
 import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/format'
 import { C } from '../theme'
 
@@ -353,11 +353,7 @@ export default function Lancamentos() {
     setSubmitting(true)
     setServerError(null)
     try {
-      const res = await fetch(`${API_BASE_URL}/lancamentos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildBody(form)),
-      })
+      const res = await apiFetchJson('/lancamentos', 'POST', buildBody(form))
       if (!res.ok) throw new Error(await extrairErro(res))
       setCreateOpen(false)
       refetch()
@@ -375,11 +371,7 @@ export default function Lancamentos() {
     setSubmitting(true)
     setServerError(null)
     try {
-      const res = await fetch(`${API_BASE_URL}/lancamentos/${editTarget.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildBody(form)),
-      })
+      const res = await apiFetchJson(`/lancamentos/${editTarget.id}`, 'PATCH', buildBody(form))
       if (!res.ok) throw new Error(await extrairErro(res))
       setEditTarget(null)
       refetch()
@@ -394,7 +386,7 @@ export default function Lancamentos() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/lancamentos/${deleteTarget.id}`, { method: 'DELETE' })
+      const res = await apiFetch(`/lancamentos/${deleteTarget.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error(`Erro ${res.status}`)
       setDeleteTarget(null)
       refetch()
