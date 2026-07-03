@@ -162,7 +162,7 @@ export default function Clientes() {
   return (
     <>
       <PageWrapper
-        title="Clientes"
+        title="Gerenciar Clientes"
         subtitle={crud.data ? `${crud.data.length} cliente(s) encontrado(s)` : 'Gerencie seus clientes cadastrados'}
         action={<AddButton onClick={crud.openCreate} />}
       >

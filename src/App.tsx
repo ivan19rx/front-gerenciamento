@@ -4,6 +4,7 @@ import { Layout } from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Clientes from './pages/Clientes'
 import Lancamentos from './pages/Lancamentos'
+import Movimentacoes from './pages/Movimentacoes'
 import Categorias from './pages/Categorias'
 import TipoDeConta from './pages/TipoDeConta'
 import ExtratoCliente from './pages/ExtratoCLiente'
@@ -24,6 +25,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="clientes"        element={<Clientes />} />
             <Route path="lancamentos"     element={<Lancamentos />} />
+            <Route path="movimentacoes"   element={<Movimentacoes />} />
             <Route path="categorias"      element={<Categorias />} />
             <Route path="tipodeconta"     element={<TipoDeConta />} />
             <Route path="extrato-cliente" element={<ExtratoCliente />} />

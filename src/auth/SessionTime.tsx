@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './useAuth'
 
-// Formata uma duração em ms como hh:mm:ss (ex: "02:15:43").
 function formatarDuracao(ms: number): string {
   const totalSeg = Math.max(0, Math.floor(ms / 1000))
   const h = Math.floor(totalSeg / 3600)
@@ -11,7 +10,6 @@ function formatarDuracao(ms: number): string {
   return `${pad(h)}:${pad(m)}:${pad(s)}`
 }
 
-// "Relógio" que re-renderiza periodicamente para o tempo decorrido avançar.
 function useAgora(intervaloMs = 1_000): number {
   const [agora, setAgora] = useState(() => Date.now())
   useEffect(() => {
@@ -21,7 +19,6 @@ function useAgora(intervaloMs = 1_000): number {
   return agora
 }
 
-// Exibe há quanto tempo a sessão atual está ativa (desde o login).
 export function SessionTime({ style }: { style?: React.CSSProperties }) {
   const { loginAt } = useAuth()
   const agora = useAgora()
