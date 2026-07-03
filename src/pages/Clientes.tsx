@@ -4,7 +4,8 @@ import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
 import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../components/Modal'
 import { useCrud } from '../hooks/useCrud'
-import { formatDateLong } from '../utils/format'
+import { useFetch } from '../hooks/useFetch'
+import { formatDateLong, moeda } from '../utils/format'
 import { C } from '../theme'
 
 
@@ -52,6 +53,48 @@ function SaldoCell({ valor }: { valor: string }) {
   const num = parseFloat(valor)
   const color = num > 0 ? '#16a34a' : num < 0 ? '#dc2626' : '#6B8C7D'
   return <span style={{ fontWeight: 600, color }}>{num > 0 ? '+' : ''}R$ {num.toFixed(2)}</span>
+}
+
+interface ResumoSaldosResponse {
+  resumo: {
+    totalReceber: number
+    totalPagar: number
+    saldo: number
+  }
+}
+
+// Resumo no topo: totais a receber (saldos positivos) e a pagar (negativos),
+// mais o saldo líquido. Os valores vêm agregados do backend (soma Decimal
+// exata, independente de paginação/filtros da listagem).
+function ResumoSaldos({ receber, pagar }: { receber: number; pagar: number }) {
+  const saldo = receber - pagar
+  const positivo = saldo >= 0
+
+  const linha: React.CSSProperties = {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24,
+    padding: '10px 16px', borderBottom: '1px solid #E2EBE7',
+  }
+  const rotulo: React.CSSProperties = {
+    fontSize: 13, fontWeight: 700, color: '#1A2E25',
+    textTransform: 'uppercase', letterSpacing: '0.03em',
+  }
+
+  return (
+    <div style={{ maxWidth: 380, marginBottom: 20, border: '1px solid #E2EBE7', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+      <div style={linha}>
+        <span style={rotulo}>A Pagar</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#dc2626' }}>{moeda(pagar)}</span>
+      </div>
+      <div style={linha}>
+        <span style={rotulo}>A Receber</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>{moeda(receber)}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24, padding: '11px 16px', background: positivo ? '#7DB93F' : '#dc2626' }}>
+        <span style={{ ...rotulo, color: '#fff' }}>{positivo ? 'Saldo Positivo' : 'Saldo Negativo'}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{moeda(saldo)}</span>
+      </div>
+    </div>
+  )
 }
 
 function validate(form: FormState) {
@@ -134,12 +177,16 @@ function ClienteForm({ form, errors, serverError, submitting, onChange, onSubmit
 
 
 export default function Clientes() {
+  const resumo = useFetch<ResumoSaldosResponse>('/fornecedores-clientes/resumo')
+
   const crud = useCrud<FornecedorCliente, FormState>({
     endpoint: '/fornecedores-clientes',
     emptyForm: EMPTY_FORM,
     toForm: raw => ({ nome: raw.nome, saldo: raw.saldo, ativo: String(raw.ativo) }),
     buildBody: f => ({ nome: f.nome, saldo: f.saldo, ativo: f.ativo === 'true' }),
     validate,
+    // Revalida o resumo agregado (endpoint próprio) após criar/editar/excluir.
+    onMutate: resumo.refetch,
   })
 
   const rows = crud.data ? crud.data.map(mapToRow) : []
@@ -169,6 +216,12 @@ export default function Clientes() {
         {crud.loading && <LoadingState message="Carregando clientes..." />}
         {crud.error && <ErrorState message={crud.error} onRetry={crud.refetch} />}
         {!crud.loading && !crud.error && rows.length === 0 && <EmptyState message="Nenhum cliente cadastrado." />}
+        {resumo.data && (
+          <ResumoSaldos
+            receber={resumo.data.resumo.totalReceber}
+            pagar={resumo.data.resumo.totalPagar}
+          />
+        )}
         {!crud.loading && !crud.error && rows.length > 0 && <DataTable columns={columns} rows={rows} getKey={r => r.id} />}
       </PageWrapper>
 

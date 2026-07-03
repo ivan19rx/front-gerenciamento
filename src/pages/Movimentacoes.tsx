@@ -50,11 +50,13 @@ function emptyForm(tipo: TipoMovimento): FormState {
 }
 
 const SUBTITULO: Record<TipoMovimento, string> = {
-  ENTRADA: 'Recebimentos e compras — entradas de mercadorias e valores',
-  SAIDA: 'Vendas e pagamentos — saída de mercadoria e de valores',
+  ENTRADA: 'Compras — entradas de mercadorias e saída valores',
+  SAIDA: 'Vendas  — saída de mercadoria e entrada de valores',
 }
 
-const COR: Record<TipoMovimento, string> = { ENTRADA: '#16a34a', SAIDA: '#dc2626' }
+// Cor pela direção do dinheiro na empresa: entrada (compra/recebimento) = saiu
+// dinheiro (vermelho); saída (venda) = entrou dinheiro (verde).
+const COR: Record<TipoMovimento, string> = { ENTRADA: '#dc2626', SAIDA: '#16a34a' }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -384,7 +386,10 @@ export default function Movimentacoes() {
       { key: 'produto', label: 'Produto', render: r => <span style={{ fontWeight: 500 }}>{r.produto ?? '—'}</span> },
       { key: 'qtd', label: 'Qtd (KG)', align: 'right', render: r => <span style={{ color: C.tableTextMuted, whiteSpace: 'nowrap' }}>{r.qtd != null ? brNum(r.qtd) : '—'}</span> },
       { key: 'preco', label: 'Preço', align: 'right', render: r => <span style={{ color: C.tableTextMuted, whiteSpace: 'nowrap' }}>{r.preco != null ? moeda(r.preco) : '—'}</span> },
-      { key: 'total', label: 'Total', align: 'right', render: r => <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: COR[r.tipo] }}>{moeda(r.total)}</span> },
+      // Exibição apenas: sinal na perspectiva de caixa da empresa — entrada
+      // (compra/recebimento) saiu dinheiro (−); saída (venda) entrou dinheiro
+      // (+). Não altera nenhum saldo/balanço nem os dados; é puramente visual.
+      { key: 'total', label: 'Total', align: 'right', render: r => <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: COR[r.tipo] }}>{r.tipo === 'ENTRADA' ? '−' : '+'} {moeda(r.total)}</span> },
     ]
     if (aba === 'ENTRADA') {
       cols.push(

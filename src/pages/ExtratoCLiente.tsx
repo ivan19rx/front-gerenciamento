@@ -7,6 +7,7 @@ import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch } from '../auth/api'
 import { formatDate, moeda } from '../utils/format'
+import { gerarRelatorioExtrato } from '../utils/relatorioExtrato'
 import { C } from '../theme'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -43,6 +44,8 @@ interface Filtros {
   contaId: string
   categoriaId: string
   tipo: FiltroTipo
+  dataInicio: string
+  dataFim: string
 }
 
 const FILTROS_INICIAIS: Filtros = {
@@ -50,6 +53,8 @@ const FILTROS_INICIAIS: Filtros = {
   contaId: '',
   categoriaId: '',
   tipo: '',
+  dataInicio: '',
+  dataFim: '',
 }
 
 // ── Estilos compartilhados ────────────────────────────────────────────────────
@@ -66,6 +71,8 @@ function buildUrl(filtros: Filtros): string {
   if (filtros.clienteId) params.set('clienteId', filtros.clienteId)
   if (filtros.contaId) params.set('contaId', filtros.contaId)
   if (filtros.categoriaId) params.set('categoriaId', filtros.categoriaId)
+  if (filtros.dataInicio) params.set('dataInicio', filtros.dataInicio)
+  if (filtros.dataFim) params.set('dataFim', filtros.dataFim)
   params.set('tipo', filtros.tipo || 'TODOS')
   return `/lancamentos/filtros?${params.toString()}`
 }
@@ -185,6 +192,28 @@ function SelectFiltro({ label, value, onChange, options, placeholder }: {
   )
 }
 
+function DateFiltro({ label, value, onChange, min, max }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  min?: string
+  max?: string
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 160 }}>
+      <label style={labelStyle}>{label}</label>
+      <input
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={e => onChange(e.target.value)}
+        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25', background: '#F9FAFB', cursor: 'pointer', outline: 'none' }}
+      />
+    </div>
+  )
+}
+
 function BuscaRapida({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
@@ -226,6 +255,27 @@ function ExportButton({ onClick, disabled }: { onClick: () => void; disabled: bo
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18v1a1 1 0 001 1h14a1 1 0 001-1v-1" />
       </svg>
       Exportar CSV
+    </button>
+  )
+}
+
+function RelatorioButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title="Gerar relatório Resumo Caixa (PDF) dos lançamentos exibidos"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+        padding: '9px 16px', borderRadius: 8, border: 'none',
+        background: disabled ? '#E2EBE7' : C.activeItem, color: disabled ? '#9DB8AD' : C.activeIcon,
+        fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
+      </svg>
+      Relatório PDF
     </button>
   )
 }
@@ -293,6 +343,32 @@ export default function ExtratoCliente() {
     setFiltros(FILTROS_INICIAIS)
   }
 
+  // Resolve o nome legível de uma opção a partir do id selecionado no filtro.
+  function nomePorId(opcoes: Opcao[] | null | undefined, id: string): string | undefined {
+    if (!id) return undefined
+    return opcoes?.find(o => String(o.id) === id)?.nome
+  }
+
+  // Descreve o período selecionado nos filtros para o cabeçalho do relatório.
+  function periodoSelecionado(): string | undefined {
+    const { dataInicio, dataFim } = filtros
+    if (dataInicio && dataFim) return `${formatDate(dataInicio)} a ${formatDate(dataFim)}`
+    if (dataInicio) return `a partir de ${formatDate(dataInicio)}`
+    if (dataFim) return `até ${formatDate(dataFim)}`
+    return undefined
+  }
+
+  function gerarPDF() {
+    gerarRelatorioExtrato(lancamentosExibidos, {
+      periodo: periodoSelecionado(),
+      cliente: nomePorId(clientes, filtros.clienteId),
+      conta: nomePorId(contas, filtros.contaId),
+      categoria: nomePorId(categorias, filtros.categoriaId),
+      tipo: filtros.tipo || 'TODOS',
+      busca: buscaRapida.trim() || undefined,
+    })
+  }
+
   const columns: Column<LancamentoItem>[] = [
     { key: 'data', label: 'Data', render: r => <span style={{ color: C.tableTextMuted }}>{formatDate(r.dataLancamento)}</span> },
     { key: 'tipo', label: 'Tipo', render: r => <TipoCell tipo={r.tipo} /> },
@@ -316,6 +392,12 @@ export default function ExtratoCliente() {
           <SelectFiltro label="Cliente / Fornecedor" value={filtros.clienteId} onChange={v => setFiltros(f => ({ ...f, clienteId: v }))} options={clientes ?? []} placeholder="Todos" />
           <SelectFiltro label="Conta" value={filtros.contaId} onChange={v => setFiltros(f => ({ ...f, contaId: v }))} options={contas ?? []} placeholder="Todas" />
           <SelectFiltro label="Categoria" value={filtros.categoriaId} onChange={v => setFiltros(f => ({ ...f, categoriaId: v }))} options={categorias ?? []} placeholder="Todas" />
+        </div>
+
+        {/* Período */}
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <DateFiltro label="Período — de" value={filtros.dataInicio} max={filtros.dataFim || undefined} onChange={v => setFiltros(f => ({ ...f, dataInicio: v }))} />
+          <DateFiltro label="Período — até" value={filtros.dataFim} min={filtros.dataInicio || undefined} onChange={v => setFiltros(f => ({ ...f, dataFim: v }))} />
         </div>
 
         {/* Tipo + Botões */}
@@ -352,6 +434,7 @@ export default function ExtratoCliente() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <BuscaRapida value={buscaRapida} onChange={setBuscaRapida} />
             <ExportButton onClick={() => exportarCSV(lancamentosExibidos)} disabled={lancamentosExibidos.length === 0} />
+            <RelatorioButton onClick={gerarPDF} disabled={lancamentosExibidos.length === 0} />
           </div>
 
           {lancamentosExibidos.length === 0

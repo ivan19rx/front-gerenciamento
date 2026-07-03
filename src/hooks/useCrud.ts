@@ -19,13 +19,17 @@ interface UseCrudOptions<T, F> {
   validate?: (form: F) => Errors<F>
   // Método usado na edição (algumas APIs usam PATCH). Padrão: PUT.
   editMethod?: 'PUT' | 'PATCH'
+  // Chamado após qualquer mutação bem-sucedida (criar/editar/excluir). Útil
+  // para revalidar dados derivados que vivem fora da listagem (ex: um resumo
+  // agregado servido por outro endpoint).
+  onMutate?: () => void
 }
 
 // Centraliza o CRUD repetido nas páginas de cadastro: estado dos modais,
 // formulário, validação, submissão e tratamento de erro. Erros de validação
 // vão para `formErrors` (por campo); erros vindos da API vão para `serverError`.
 export function useCrud<T extends { id: number }, F>({
-  endpoint, emptyForm, toForm, buildBody, validate, editMethod = 'PUT',
+  endpoint, emptyForm, toForm, buildBody, validate, editMethod = 'PUT', onMutate,
 }: UseCrudOptions<T, F>) {
   const { data, loading, error, refetch } = useFetch<T[]>(endpoint)
 
@@ -78,7 +82,7 @@ export function useCrud<T extends { id: number }, F>({
     setSubmitting(true); setServerError(null)
     try {
       await request(endpoint, 'POST', buildBody(form))
-      setCreateOpen(false); refetch()
+      setCreateOpen(false); refetch(); onMutate?.()
     } catch (e) {
       setServerError(getErrorMessage(e))
     } finally {
@@ -92,7 +96,7 @@ export function useCrud<T extends { id: number }, F>({
     setSubmitting(true); setServerError(null)
     try {
       await request(`${endpoint}/${editTarget.id}`, editMethod, buildBody(form))
-      setEditTarget(null); refetch()
+      setEditTarget(null); refetch(); onMutate?.()
     } catch (e) {
       setServerError(getErrorMessage(e))
     } finally {
@@ -105,7 +109,7 @@ export function useCrud<T extends { id: number }, F>({
     setDeleting(true)
     try {
       await request(`${endpoint}/${deleteTarget.id}`, 'DELETE')
-      setDeleteTarget(null); refetch()
+      setDeleteTarget(null); refetch(); onMutate?.()
     } catch (e) {
       console.error(e)
     } finally {
