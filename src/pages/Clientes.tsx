@@ -63,9 +63,9 @@ interface ResumoSaldosResponse {
   }
 }
 
-// Resumo no topo: totais a receber (saldos positivos) e a pagar (negativos),
-// mais o saldo líquido. Os valores vêm agregados do backend (soma Decimal
-// exata, independente de paginação/filtros da listagem).
+// Resumo no topo: a receber = soma dos saldos negativos; a pagar = soma dos
+// positivos; saldo = a receber − a pagar. Os valores vêm agregados do backend
+// (soma Decimal exata, independente de paginação/filtros da listagem).
 function ResumoSaldos({ receber, pagar }: { receber: number; pagar: number }) {
   const saldo = receber - pagar
   const positivo = saldo >= 0

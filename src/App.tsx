@@ -6,6 +6,7 @@ import Clientes from './pages/Clientes'
 import Lancamentos from './pages/Lancamentos'
 import Movimentacoes from './pages/Movimentacoes'
 import Categorias from './pages/Categorias'
+import Produtos from './pages/Produtos'
 import TipoDeConta from './pages/TipoDeConta'
 import ExtratoCliente from './pages/ExtratoCLiente'
 import Login from './pages/Login'
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="lancamentos"     element={<Lancamentos />} />
             <Route path="movimentacoes"   element={<Movimentacoes />} />
             <Route path="categorias"      element={<Categorias />} />
+            <Route path="produtos"        element={<Produtos />} />
             <Route path="tipodeconta"     element={<TipoDeConta />} />
             <Route path="extrato-cliente" element={<ExtratoCliente />} />
           </Route>
