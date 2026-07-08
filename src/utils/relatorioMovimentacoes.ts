@@ -103,34 +103,39 @@ function qtdTexto(qtd: number, unidade: UnidadeMedida | null): string {
   return `${brNum(qtd)}${unidade ? ' ' + UNIDADE_LABEL[unidade] : ''}`
 }
 
-function linhasProduto(grupos: GrupoProduto[]): string {
-  if (!grupos.length) return '<tr><td class="empty" colspan="3">—</td></tr>'
+function pctTexto(total: number, base: number): string {
+  return `${base > 0 ? Math.round((total / base) * 100) : 0}%`
+}
+
+function linhasProduto(grupos: GrupoProduto[], base: number): string {
+  if (!grupos.length) return '<tr><td class="empty" colspan="4">—</td></tr>'
   return grupos
-    .map(g => `<tr><td class="lbl">${esc(g.nome)}</td><td class="qtd">${qtdTexto(g.qtd, g.unidade)}</td><td class="val">${moeda(g.total)}</td></tr>`)
+    .map(g => `<tr><td class="lbl">${esc(g.nome)}</td><td class="qtd">${qtdTexto(g.qtd, g.unidade)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pctTexto(g.total, base)}</td></tr>`)
     .join('')
 }
 
-function linhasCliente(grupos: Grupo[]): string {
-  if (!grupos.length) return '<tr><td class="empty" colspan="2">—</td></tr>'
+function linhasCliente(grupos: Grupo[], base: number): string {
+  if (!grupos.length) return '<tr><td class="empty" colspan="3">—</td></tr>'
   return grupos
-    .map(g => `<tr><td class="lbl">${esc(g.nome)}</td><td class="val">${moeda(g.total)}</td></tr>`)
+    .map(g => `<tr><td class="lbl">${esc(g.nome)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pctTexto(g.total, base)}</td></tr>`)
     .join('')
 }
 
 function tabelaProduto(titulo: string, cls: string, grupos: GrupoProduto[], total: number): string {
   return `<table>
-    <tr><td class="shead ${cls}" colspan="3">${esc(titulo)}</td></tr>
-    <tr class="colhdr"><td class="lbl">Produto</td><td class="qtd">Qtd</td><td class="val">Total</td></tr>
-    ${linhasProduto(grupos)}
-    <tr class="total"><td class="lbl" colspan="2">TOTAL</td><td class="val">${moeda(total)}</td></tr>
+    <tr><td class="shead ${cls}" colspan="4">${esc(titulo)}</td></tr>
+    <tr class="colhdr"><td class="lbl">Produto</td><td class="qtd">Qtd</td><td class="val">Total</td><td class="pct">%</td></tr>
+    ${linhasProduto(grupos, total)}
+    <tr class="total"><td class="lbl" colspan="2">TOTAL</td><td class="val">${moeda(total)}</td><td class="pct">${total > 0 ? '100%' : '0%'}</td></tr>
   </table>`
 }
 
 function tabelaCliente(titulo: string, cls: string, grupos: Grupo[], total: number): string {
   return `<table>
-    <tr><td class="shead ${cls}" colspan="2">${esc(titulo)}</td></tr>
-    ${linhasCliente(grupos)}
-    <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(total)}</td></tr>
+    <tr><td class="shead ${cls}" colspan="3">${esc(titulo)}</td></tr>
+    <tr class="colhdr"><td class="lbl">Cliente/Fornecedor</td><td class="val">Total</td><td class="pct">%</td></tr>
+    ${linhasCliente(grupos, total)}
+    <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(total)}</td><td class="pct">${total > 0 ? '100%' : '0%'}</td></tr>
   </table>`
 }
 
@@ -164,11 +169,11 @@ export function gerarRelatorioMovimentacoes(
   const tblSaiCliente = tabelaCliente('Saídas por Cliente/Fornecedor', 'sai', saidasCliente, totalSaidas)
 
   const tblResultado = `<table class="result">
-    <tr><td class="rhead" colspan="2">Resultado</td></tr>
+    <tr><td class="rhead" colspan="2">Resultado Financeiro</td></tr>
     <tr><td class="lbl">ENTRADAS (COMPRAS)</td><td class="val">${moeda(totalEntradas)}</td></tr>
     <tr><td class="lbl">SAÍDAS (VENDAS)</td><td class="val">${moeda(totalSaidas)}</td></tr>
     <tr class="saldo ${positivo ? 'pos' : 'neg'}">
-      <td class="lbl">RESULTADO (VENDAS − COMPRAS)</td>
+      <td class="lbl">${positivo ? 'POSITIVO' : 'NEGATIVO'}</td>
       <td class="val">${moeda(resultado)}</td>
     </tr>
   </table>`
@@ -193,7 +198,7 @@ export function gerarRelatorioMovimentacoes(
 <meta charset="utf-8">
 <title>${esc(titulo)}</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #fff; }
   .report { max-width: 860px; margin: 0 auto; }
   .title { background: #404040; color: #fff; font-weight: 700; font-size: 15px; text-align: center; padding: 10px; letter-spacing: .04em; }
@@ -210,6 +215,7 @@ export function gerarRelatorioMovimentacoes(
   .lbl { text-align: left; }
   .qtd { text-align: right; white-space: nowrap; color: #555; }
   .val { text-align: right; white-space: nowrap; }
+  .pct { text-align: right; width: 46px; color: #555; }
   .empty { text-align: center; color: #999; }
   tr.total td { background: #eee; font-weight: 700; }
   table.result .rhead { background: #2f6f4f; color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; border-color: #2f6f4f; }

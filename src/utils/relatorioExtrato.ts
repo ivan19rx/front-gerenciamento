@@ -97,13 +97,6 @@ function metaLinha(ctx: RelatorioContexto): string {
 
 // ── Construtores de linhas ─────────────────────────────────────────────────────
 
-function linhasSimples(grupos: Grupo[]): string {
-  if (!grupos.length) return '<tr><td class="empty" colspan="2">—</td></tr>'
-  return grupos
-    .map(g => `<tr><td class="lbl">${esc(g.nome)}</td><td class="val">${moeda(g.total)}</td></tr>`)
-    .join('')
-}
-
 function linhasComPct(grupos: Grupo[], base: number): string {
   if (!grupos.length) return '<tr><td class="empty" colspan="3">—</td></tr>'
   return grupos
@@ -139,7 +132,7 @@ export function gerarRelatorioExtrato(
 <meta charset="utf-8">
 <title>${esc(titulo)}</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #fff; }
   .report { max-width: 840px; margin: 0 auto; }
   .title { background: #404040; color: #fff; font-weight: 700; font-size: 15px; text-align: center; padding: 10px; letter-spacing: .04em; }
@@ -171,21 +164,24 @@ export function gerarRelatorioExtrato(
     <div class="grid">
       <div class="col">
         <table>
-          <tr><td class="shead" colspan="2">Entradas por Categoria</td></tr>
-          ${linhasSimples(entradasCategoria)}
-          <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalEntradas)}</td></tr>
+          <tr><td class="shead" colspan="3">Entradas por Categoria</td></tr>
+          <tr class="colhdr"><td class="lbl">Categoria</td><td class="val">Total</td><td class="pct">%</td></tr>
+          ${linhasComPct(entradasCategoria, totalEntradas)}
+          <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalEntradas)}</td><td class="pct">${totalEntradas > 0 ? '100%' : '0%'}</td></tr>
         </table>
 
         <table>
-          <tr><td class="shead" colspan="2">Entradas por Conta</td></tr>
-          ${linhasSimples(entradasConta)}
-          <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalEntradas)}</td></tr>
+          <tr><td class="shead" colspan="3">Entradas por Conta</td></tr>
+          <tr class="colhdr"><td class="lbl">Conta</td><td class="val">Total</td><td class="pct">%</td></tr>
+          ${linhasComPct(entradasConta, totalEntradas)}
+          <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalEntradas)}</td><td class="pct">${totalEntradas > 0 ? '100%' : '0%'}</td></tr>
         </table>
 
         <table>
-          <tr><td class="shead" colspan="2">Saídas por Conta</td></tr>
-          ${linhasSimples(saidasConta)}
-          <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalSaidas)}</td></tr>
+          <tr><td class="shead" colspan="3">Saídas por Conta</td></tr>
+          <tr class="colhdr"><td class="lbl">Conta</td><td class="val">Total</td><td class="pct">%</td></tr>
+          ${linhasComPct(saidasConta, totalSaidas)}
+          <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalSaidas)}</td><td class="pct">${totalSaidas > 0 ? '100%' : '0%'}</td></tr>
         </table>
 
         <table class="result">
