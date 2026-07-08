@@ -101,14 +101,13 @@ function MesHeader({ label, lancamentos, aberto, onToggle }: {
   return (
     <button
       onClick={onToggle}
+      className="mes-header"
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         width: '100%', padding: '14px 20px',
-        background: C.sidebarBg, border: 'none', borderRadius: aberto ? '10px 10px 0 0' : 10,
-        cursor: 'pointer', transition: 'background 0.15s',
+        border: 'none', borderRadius: aberto ? '10px 10px 0 0' : 10,
+        cursor: 'pointer',
       }}
-      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.activeItem}
-      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = C.sidebarBg}
     >
       {/* Esquerda: seta + título + qtd */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

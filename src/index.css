@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+/* Hover das linhas da tabela feito 100% em CSS (sem estado React), evitando
+   re-render da tabela a cada movimento do mouse. Cor = C.tableRowHover. */
+.dt-row {
+  transition: background-color 0.15s;
+}
+.dt-row:hover {
+  background-color: #F6FAF8;
+}
+
+/* Cabeçalho do mês (Lançamentos) também com hover em CSS. Cores: C.sidebarBg
+   normal, C.activeItem no hover. */
+.mes-header {
+  background-color: #004147;
+  transition: background-color 0.15s;
+}
+.mes-header:hover {
+  background-color: #1E4A38;
+}

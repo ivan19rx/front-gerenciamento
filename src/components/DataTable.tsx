@@ -171,7 +171,6 @@ export function ActionMenu({ items }: { items: ActionItem[] }) {
 
 export function DataTable<T>({ columns, rows, getKey, pageSize = 10, minWidth = 600, maxWidth }: DataTableProps<T>) {
   const [page, setPage] = useState(1)
-  const [hovered, setHovered] = useState<string | number | null>(null)
   const [prevLen, setPrevLen] = useState(rows.length)
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
@@ -223,9 +222,8 @@ export function DataTable<T>({ columns, rows, getKey, pageSize = 10, minWidth = 
                 return (
                   <tr
                     key={key}
-                    onMouseEnter={() => setHovered(key)}
-                    onMouseLeave={() => setHovered(null)}
-                    style={{ background: hovered === key ? C.tableRowHover : 'transparent', transition: 'background 0.15s', borderBottom: `1px solid ${C.tableBorder}` }}
+                    className="dt-row"
+                    style={{ borderBottom: `1px solid ${C.tableBorder}` }}
                   >
                     {columns.map(col => (
                       <td key={col.key} style={{ padding: '14px 16px', textAlign: col.align ?? 'left', width: col.width, fontSize: 14, color: C.tableText }}>
