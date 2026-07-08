@@ -305,6 +305,7 @@ interface MovimentoFormProps {
   errors: Partial<Record<keyof FormState, string>>
   clientes: Opcao[]
   produtos: ProdutoOpcao[]
+  transportadoras: string[]
   serverError: string | null
   submitting: boolean
   onChange: (f: FormState) => void
@@ -313,7 +314,7 @@ interface MovimentoFormProps {
   isEdit: boolean
 }
 
-function MovimentoForm({ form, errors, clientes, produtos, serverError, submitting, onChange, onSubmit, onCancel, isEdit }: MovimentoFormProps) {
+function MovimentoForm({ form, errors, clientes, produtos, transportadoras, serverError, submitting, onChange, onSubmit, onCancel, isEdit }: MovimentoFormProps) {
   const row2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
   const totalCalc = calcularTotal(form)
   const isEntrada = form.tipo === 'ENTRADA'
@@ -396,8 +397,11 @@ function MovimentoForm({ form, errors, clientes, produtos, serverError, submitti
             </Field>
           </div>
           <Field label="Transportadora">
-            <Input placeholder="Nome da transportadora" value={form.transportadora}
+            <Input placeholder="Nome da transportadora" value={form.transportadora} list="lista-transportadoras"
               onChange={e => onChange({ ...form, transportadora: (e.target as HTMLInputElement).value })} />
+            <datalist id="lista-transportadoras">
+              {transportadoras.map(t => <option key={t} value={t} />)}
+            </datalist>
           </Field>
         </>
       )}
@@ -441,6 +445,7 @@ export default function Movimentacoes() {
   const { data: movimentosApi, loading, error, refetch } = useFetch<MovimentoAPI[]>('/movimentacoes')
   const { data: clientes } = useFetch<Opcao[]>('/fornecedores-clientes')
   const { data: produtos } = useFetch<ProdutoOpcao[]>('/produtos')
+  const { data: transportadoras, refetch: refetchTransportadoras } = useFetch<string[]>('/movimentacoes/transportadoras')
 
   const [aba, setAba] = useState<AbaMov>('ENTRADA')
   const [busca, setBusca] = useState('')
@@ -565,6 +570,7 @@ export default function Movimentacoes() {
       setCreateOpen(false)
       setAba(form.tipo)
       refetch()
+      refetchTransportadoras()
     } catch (e) {
       setServerError(getErrorMessage(e))
     } finally {
@@ -581,6 +587,7 @@ export default function Movimentacoes() {
       await request(`/movimentacoes/${editTarget.id}`, 'PATCH', buildBody(form))
       setEditTarget(null)
       refetch()
+      refetchTransportadoras()
     } catch (e) {
       setServerError(getErrorMessage(e))
     } finally {
@@ -717,12 +724,12 @@ export default function Movimentacoes() {
       </PageWrapper>
 
       <Modal open={createOpen} title={form.tipo === 'ENTRADA' ? 'Nova Entrada' : 'Nova Saída'} onClose={() => setCreateOpen(false)} width={620}>
-        <MovimentoForm form={form} errors={errors} clientes={clientes ?? []} produtos={produtos ?? []} serverError={serverError} submitting={submitting}
+        <MovimentoForm form={form} errors={errors} clientes={clientes ?? []} produtos={produtos ?? []} transportadoras={transportadoras ?? []} serverError={serverError} submitting={submitting}
           onChange={setForm} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)} isEdit={false} />
       </Modal>
 
       <Modal open={!!editTarget} title="Editar Movimento" onClose={() => setEditTarget(null)} width={620}>
-        <MovimentoForm form={form} errors={errors} clientes={clientes ?? []} produtos={produtos ?? []} serverError={serverError} submitting={submitting}
+        <MovimentoForm form={form} errors={errors} clientes={clientes ?? []} produtos={produtos ?? []} transportadoras={transportadoras ?? []} serverError={serverError} submitting={submitting}
           onChange={setForm} onSubmit={handleEdit} onCancel={() => setEditTarget(null)} isEdit />
       </Modal>
 

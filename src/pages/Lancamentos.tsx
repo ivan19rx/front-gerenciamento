@@ -122,23 +122,25 @@ function MesHeader({ label, lancamentos, aberto, onToggle }: {
         </span>
       </div>
 
-      {/* Direita: resumo financeiro */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Entradas</p>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#16a34a' }}>+ {moeda(entradas)}</p>
+      {/* Direita: resumo financeiro — exibido apenas quando o mês está expandido */}
+      {aberto && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Entradas</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#16a34a' }}>+ {moeda(entradas)}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saídas</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#dc2626' }}>- {moeda(saidas)}</p>
+          </div>
+          <div style={{ textAlign: 'right', minWidth: 90 }}>
+            <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saldo</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: saldo >= 0 ? '#16a34a' : '#dc2626' }}>
+              {saldo >= 0 ? '+ ' : '- '}{moeda(Math.abs(saldo))}
+            </p>
+          </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saídas</p>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#dc2626' }}>- {moeda(saidas)}</p>
-        </div>
-        <div style={{ textAlign: 'right', minWidth: 90 }}>
-          <p style={{ margin: 0, fontSize: 11, color: C.mutedText, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saldo</p>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: saldo >= 0 ? '#16a34a' : '#dc2626' }}>
-            {saldo >= 0 ? '+ ' : '- '}{moeda(Math.abs(saldo))}
-          </p>
-        </div>
-      </div>
+      )}
     </button>
   )
 }
