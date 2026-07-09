@@ -23,10 +23,7 @@ interface DataTableProps<T> {
   rows: T[]
   getKey: (row: T) => string | number
   pageSize?: number
-  // largura mínima da tabela (rolagem horizontal abaixo disso). default 600
   minWidth?: number
-  // largura máxima do bloco — útil para tabelas com poucas colunas,
-  // evitando que fiquem esticadas por toda a página
   maxWidth?: number
 }
 
@@ -46,9 +43,7 @@ export interface ActionItem {
   danger?: boolean
 }
 
-// Menu de ações: um único botão "⋮" que, ao clicar, abre um dropdown
-// com as opções (ex: Editar / Excluir). O menu usa position: fixed para
-// não ser cortado pelo overflow da tabela.
+
 export function ActionMenu({ items }: { items: ActionItem[] }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState({ top: 0, left: 0 })

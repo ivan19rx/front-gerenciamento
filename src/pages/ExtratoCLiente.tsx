@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { DataTable } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
@@ -297,9 +297,9 @@ export default function ExtratoCliente() {
   // evitando que respostas atrasadas sobrescrevam dados mais recentes.
   const reqIdRef = useRef(0)
 
-  function buscar() {
+  function buscar(filtrosBusca: Filtros = filtros) {
     const reqId = ++reqIdRef.current
-    const url = buildUrl(filtros)
+    const url = buildUrl(filtrosBusca)
     setLoading(true)
     setError(null)
     apiFetch(url)
@@ -312,14 +312,16 @@ export default function ExtratoCliente() {
       .finally(() => { if (reqId === reqIdRef.current) setLoading(false) })
   }
 
-  // Busca ao montar e sempre que o tipo muda pelas tabs. É um efeito legítimo
-  // de data-fetching (com guarda de corrida via reqIdRef): a busca ao montar
-  // precisa, por natureza, disparar setState dentro do efeito.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    buscar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros.tipo])
+  // O extrato é gerado sob demanda: nada é buscado ao abrir a página. Os
+  // resultados só aparecem depois que o usuário clica em "Buscar" (extrato
+  // deixa de ser null). "Limpar" volta ao estado inicial (extrato = null).
+
+  // Abas de tipo: só atualizam o filtro até a primeira busca. Depois que já há
+  // um extrato carregado, elas passam a refinar na hora (sem clicar em Buscar).
+  function handleTipo(v: FiltroTipo) {
+    setFiltros(f => ({ ...f, tipo: v }))
+    if (extrato) buscar({ ...filtros, tipo: v })
+  }
 
   // Filtragem client-side (busca rápida) sobre os lançamentos carregados.
   const lancamentosExibidos = useMemo(() => {
@@ -341,6 +343,8 @@ export default function ExtratoCliente() {
   function limpar() {
     setBuscaRapida('')
     setFiltros(FILTROS_INICIAIS)
+    setExtrato(null)
+    setError(null)
   }
 
   // Resolve o nome legível de uma opção a partir do id selecionado no filtro.
@@ -404,7 +408,7 @@ export default function ExtratoCliente() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={labelStyle}>Tipo:</span>
-            <FiltroTabs value={filtros.tipo} onChange={v => setFiltros(f => ({ ...f, tipo: v }))} />
+            <FiltroTabs value={filtros.tipo} onChange={handleTipo} />
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
@@ -412,7 +416,7 @@ export default function ExtratoCliente() {
               Limpar
             </button>
             <button
-              onClick={buscar}
+              onClick={() => buscar()}
               disabled={loading}
               style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.15s' }}
             >
@@ -424,7 +428,12 @@ export default function ExtratoCliente() {
 
       {/* Estados */}
       {loading && <LoadingState message="Carregando extrato..." />}
-      {error && <ErrorState message={error} onRetry={buscar} />}
+      {error && <ErrorState message={error} onRetry={() => buscar()} />}
+
+      {/* Estado inicial: nada é buscado até o usuário aplicar um filtro e clicar em Buscar */}
+      {!loading && !error && !extrato && (
+        <EmptyState message="Selecione os filtros desejados e clique em Buscar para gerar o extrato." />
+      )}
 
       {!loading && !error && extrato && (
         <>

@@ -4,7 +4,7 @@ import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState, EmptyState } from '../components/TableState'
 import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../components/Modal'
-import { TipoCell, ValorCell } from '../components/cells'
+import { ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch, apiFetchJson } from '../auth/api'
 import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/format'
@@ -243,6 +243,50 @@ function AddButton({ onClick }: { onClick: () => void }) {
   )
 }
 
+function BuscaBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+      <svg width="16" height="16" fill="none" stroke="#9DB8AD" strokeWidth="2" viewBox="0 0 24 24"
+        style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Buscar por cliente, conta, categoria, observação, valor..."
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', padding: '9px 12px 9px 36px', borderRadius: 8, border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25', outline: 'none', boxSizing: 'border-box', background: '#fff' }}
+      />
+    </div>
+  )
+}
+
+function TipoTabs({ value, onChange }: { value: '' | 'ENTRADA' | 'SAIDA'; onChange: (v: '' | 'ENTRADA' | 'SAIDA') => void }) {
+  const tabs = [
+    { label: 'Todos', value: '' },
+    { label: '▲ Entradas', value: 'ENTRADA' },
+    { label: '▼ Saídas', value: 'SAIDA' },
+  ] as const
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {tabs.map(tab => {
+        const active = value === tab.value
+        return (
+          <button key={tab.value} onClick={() => onChange(tab.value)} style={{
+            padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            border: `1px solid ${active ? C.activeIcon : '#E2EBE7'}`,
+            background: active ? C.activeItem : '#fff',
+            color: active ? C.activeIcon : '#6B8C7D',
+            transition: 'all 0.15s', whiteSpace: 'nowrap',
+          }}>
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default function Lancamentos() {
@@ -264,11 +308,34 @@ export default function Lancamentos() {
   const [abertos, setAbertos] = useState<Record<string, boolean>>({})
   const [ordens, setOrdens]   = useState<Record<string, 'recente' | 'antigo'>>({})
 
+  // filtros: busca por texto e tipo (entrada/saída)
+  const [busca, setBusca]         = useState('')
+  const [filtroTipo, setFiltroTipo] = useState<'' | 'ENTRADA' | 'SAIDA'>('')
+  const filtroAtivo = busca.trim() !== '' || filtroTipo !== ''
+
+  // aplica os filtros antes de agrupar por mês
+  const dadosFiltrados = useMemo(() => {
+    let arr = data ?? []
+    if (filtroTipo) arr = arr.filter(l => l.tipo === filtroTipo)
+    const q = busca.trim().toLowerCase()
+    if (q) {
+      arr = arr.filter(l =>
+        (l.fornecedorCliente?.nome ?? '').toLowerCase().includes(q) ||
+        (l.conta?.nome ?? '').toLowerCase().includes(q) ||
+        (l.categoria?.nome ?? '').toLowerCase().includes(q) ||
+        (l.classificacao ?? '').toLowerCase().includes(q) ||
+        (l.observacao ?? '').toLowerCase().includes(q) ||
+        (l.valor ?? '').includes(q) ||
+        formatDate(l.dataLancamento).includes(q)
+      )
+    }
+    return arr
+  }, [data, busca, filtroTipo])
+
   // agrupa lançamentos por mês/ano
   const grupos = useMemo(() => {
-    if (!data) return []
     const map = new Map<string, LancamentoAPI[]>()
-    data.forEach(l => {
+    dadosFiltrados.forEach(l => {
       const key = getMesAnoKey(l.dataLancamento)
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(l)
@@ -276,10 +343,11 @@ export default function Lancamentos() {
     return Array.from(map.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
       .map(([key, items]) => ({ key, label: getMesAnoLabel(key), items }))
-  }, [data])
+  }, [dadosFiltrados])
 
-  // abre o primeiro grupo automaticamente
-  const isAberto = (key: string, index: number) => abertos[key] ?? index === 0
+  // Abre o primeiro grupo por padrão; com filtro ativo, abre todos para revelar
+  // os resultados sem precisar expandir mês a mês.
+  const isAberto = (key: string, index: number) => filtroAtivo ? true : (abertos[key] ?? index === 0)
 
   function toggleGrupo(key: string, index: number) {
     setAbertos(prev => ({ ...prev, [key]: !isAberto(key, index) }))
@@ -400,8 +468,7 @@ export default function Lancamentos() {
 
   const columns: Column<LancamentoAPI>[] = [
     { key: 'dataLancamento',    label: 'Data',          render: r => <span style={{ color: C.tableTextMuted }}>{formatDate(r.dataLancamento)}</span> },
-    { key: 'tipo',              label: 'Tipo',          render: r => <TipoCell tipo={r.tipo} /> },
-    { key: 'valor',             label: 'Valor',         render: r => <ValorCell valor={r.valor} tipo={r.tipo} /> },
+    { key: 'valor',             label: 'Valor', align: 'right', render: r => <ValorCell valor={r.valor} tipo={r.tipo} /> },
     { key: 'fornecedorCliente', label: 'Cliente/Forn.', render: r => <span style={{ color: C.tableTextMuted }}>{r.fornecedorCliente?.nome ?? '—'}</span> },
     { key: 'conta',             label: 'Conta',         render: r => <span style={{ color: C.tableTextMuted }}>{r.conta?.nome ?? '—'}</span> },
     { key: 'categoria',         label: 'Categoria',     render: r => <span style={{ color: C.tableTextMuted }}>{r.categoria?.nome ?? '—'}</span> },
@@ -416,12 +483,22 @@ export default function Lancamentos() {
     <>
       <PageWrapper
         title="Lançamentos"
-        subtitle={data ? `${data.length} lançamento(s) em ${grupos.length} mês(es)` : 'Receitas e despesas registradas'}
+        subtitle={data ? `${dadosFiltrados.length} lançamento(s) em ${grupos.length} mês(es)` : 'Receitas e despesas registradas'}
         action={<AddButton onClick={openCreate} />}
       >
         {loading  && <LoadingState message="Carregando lançamentos..." />}
         {error    && <ErrorState message={error} onRetry={refetch} />}
-        {!loading && !error && grupos.length === 0 && <EmptyState message="Nenhum lançamento registrado." />}
+
+        {!loading && !error && data && data.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <BuscaBar value={busca} onChange={setBusca} />
+            <TipoTabs value={filtroTipo} onChange={setFiltroTipo} />
+          </div>
+        )}
+
+        {!loading && !error && grupos.length === 0 && (
+          <EmptyState message={filtroAtivo ? 'Nenhum lançamento encontrado para os filtros aplicados.' : 'Nenhum lançamento registrado.'} />
+        )}
 
         {!loading && !error && grupos.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

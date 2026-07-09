@@ -23,7 +23,7 @@ export function ValorCell({ valor, tipo }: { valor: string; tipo: Tipo }) {
   const num = parseFloat(valor) || 0
   const isEntrada = tipo === 'ENTRADA'
   return (
-    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: isEntrada ? '#16a34a' : '#dc2626' }}>
+    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: isEntrada ? '#16a34a' : '#dc2626' }}>
       {isEntrada ? '+ ' : '- '}{moeda(Math.abs(num))}
     </span>
   )
