@@ -18,6 +18,7 @@ export interface EmpresaInfo {
 export interface AdminInfo {
   id: number
   email: string
+  cnpj?: string | null
 }
 
 export interface AuthState {

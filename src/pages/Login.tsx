@@ -119,9 +119,7 @@ export default function Login() {
     setEnviando(true)
     try {
       const path = isAdmin ? '/auth/admin/login' : '/auth/login'
-      const body = isAdmin
-        ? { email: identificador.trim(), senha }
-        : { identificador: identificador.trim(), senha }
+      const body = { identificador: identificador.trim(), senha }
 
       const res = await fetch(`${API_BASE_URL}${path}`, {
         method: 'POST',
@@ -188,9 +186,9 @@ export default function Login() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <InputField
             id="identificador"
-            label={isAdmin ? 'E-mail' : 'CNPJ ou e-mail'}
-            type={isAdmin ? 'email' : 'text'}
-            placeholder={isAdmin ? 'admin@sistema.com' : 'CNPJ ou seu@email.com'}
+            label="CNPJ ou e-mail"
+            type="text"
+            placeholder={isAdmin ? 'CNPJ ou admin@sistema.com' : 'CNPJ ou seu@email.com'}
             value={identificador}
             onChange={setIdentificador}
           />
