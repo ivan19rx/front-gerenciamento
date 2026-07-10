@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { C } from '../theme'
 import { API_BASE_URL } from '../config'
+import { fetchComReenvio } from '../auth/api'
 import { authStore } from '../auth/store'
 import { getErrorMessage } from '../utils/format'
 
@@ -121,7 +122,7 @@ export default function Login() {
       const path = isAdmin ? '/auth/admin/login' : '/auth/login'
       const body = { identificador: identificador.trim(), senha }
 
-      const res = await fetch(`${API_BASE_URL}${path}`, {
+      const res = await fetchComReenvio(`${API_BASE_URL}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

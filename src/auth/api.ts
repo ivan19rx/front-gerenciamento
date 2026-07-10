@@ -21,8 +21,10 @@ const TIMEOUT_POR_TENTATIVA_MS = 20_000
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-// `fetch` com reenvio automático em falha de rede / 502-503-504.
-async function fetchComReenvio(url: string, options: RequestInit): Promise<Response> {
+// `fetch` com reenvio automático em falha de rede / 502-503-504. Exportado
+// para o Login, que não passa pelo `apiFetch` (ainda não há token) mas também
+// precisa sobreviver ao cold start do Render.
+export async function fetchComReenvio(url: string, options: RequestInit = {}): Promise<Response> {
   let ultimoErro: unknown
   for (let tentativa = 0; tentativa <= BACKOFF_MS.length; tentativa++) {
     if (tentativa > 0) await sleep(BACKOFF_MS[tentativa - 1])
