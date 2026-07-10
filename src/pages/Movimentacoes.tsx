@@ -706,7 +706,7 @@ export default function Movimentacoes() {
               <RelatorioButton
                 onClick={gerarPDF}
                 disabled={linhas.length === 0}
-                label={aba === 'ENTRADA' ? 'Relatório de Entradas' : aba === 'SAIDA' ? 'Relatório de Saídas' : 'Relatório Geral'}
+                label= 'Gerar Relatório'
               />
             </div>
 
