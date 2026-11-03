@@ -141,11 +141,35 @@ function tabelaCliente(titulo: string, cls: string, grupos: Grupo[], total: numb
 
 // ── Geração ────────────────────────────────────────────────────────────────────
 
-export function gerarRelatorioMovimentacoes(
-  movimentos: RelatorioMovimento[],
-  contexto: RelatorioMovContexto,
-): void {
-  const { escopo } = contexto
+// Regras de estilo das tabelas do resumo. `p` é o prefixo de escopo: '' no
+// documento próprio ou '.resumo-mov ' quando embutido como anexo abaixo de um
+// espelho, evitando colisão com os estilos do espelho.
+function regrasMov(p: string): string {
+  return `
+  ${p}.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  ${p}.col { display: flex; flex-direction: column; gap: 16px; }
+  ${p}.solo { max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  ${p}table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  ${p}td { border: 1px solid #cfcfcf; padding: 4px 8px; }
+  ${p}.shead { color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; }
+  ${p}.shead.ent { background: #C0392B; border-color: #C0392B; }
+  ${p}.shead.sai { background: #1E8449; border-color: #1E8449; }
+  ${p}tr.colhdr td { background: #ececec; font-weight: 700; color: #555; }
+  ${p}.lbl { text-align: left; }
+  ${p}.qtd { text-align: right; white-space: nowrap; color: #555; }
+  ${p}.val { text-align: right; white-space: nowrap; }
+  ${p}.pct { text-align: right; width: 46px; color: #555; }
+  ${p}.empty { text-align: center; color: #999; }
+  ${p}tr.total td { background: #eee; font-weight: 700; }
+  ${p}table.result .rhead { background: #2f6f4f; color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; border-color: #2f6f4f; }
+  ${p}tr.saldo td { font-weight: 700; }
+  ${p}tr.saldo.pos td { background: #84BE43; color: #1a3a10; }
+  ${p}tr.saldo.neg td { background: #E4574C; color: #fff; }
+  ${p}.nota { font-size: 9px; color: #777; line-height: 1.5; margin-top: 2px; }`
+}
+
+// Monta o título e o corpo (tabelas) do Resumo de Movimentações.
+function construirMov(movimentos: RelatorioMovimento[], escopo: RelatorioMovContexto['escopo']): { titulo: string; corpo: string } {
   const entradasProduto = agruparPorProduto(movimentos, 'ENTRADA')
   const entradasCliente = agruparPorCliente(movimentos, 'ENTRADA')
   const saidasProduto = agruparPorProduto(movimentos, 'SAIDA')
@@ -192,6 +216,31 @@ export function gerarRelatorioMovimentacoes(
     </div>`
   }
 
+  return { titulo, corpo }
+}
+
+// Fragmento do Resumo de Movimentações para embutir ABAIXO de um espelho. Os
+// estilos são escopados em .resumo-mov para não colidir com os do espelho.
+export function montarResumoMovimentacoesAnexo(
+  movimentos: RelatorioMovimento[],
+  contexto: RelatorioMovContexto,
+): string {
+  const { titulo, corpo } = construirMov(movimentos, contexto.escopo)
+  return `<style>
+  .resumo-mov { margin-top: 28px; }
+  .resumo-mov .rc-title { background: #404040; color: #fff; font-weight: 700; font-size: 14px; text-align: center; padding: 10px; letter-spacing: .04em; margin-bottom: 14px; }
+  ${regrasMov('.resumo-mov ')}
+  .resumo-mov tbody tr:last-child td { border-bottom: 1px solid #cfcfcf; }
+</style>
+<section class="resumo-mov"><div class="rc-title">${esc(titulo)}</div>${corpo}</section>`
+}
+
+export function gerarRelatorioMovimentacoes(
+  movimentos: RelatorioMovimento[],
+  contexto: RelatorioMovContexto,
+): void {
+  const { titulo, corpo } = construirMov(movimentos, contexto.escopo)
+
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -203,26 +252,7 @@ export function gerarRelatorioMovimentacoes(
   .report { max-width: 860px; margin: 0 auto; }
   .title { background: #404040; color: #fff; font-weight: 700; font-size: 15px; text-align: center; padding: 10px; letter-spacing: .04em; }
   .meta { font-size: 10px; color: #555; padding: 8px 2px 16px; line-height: 1.6; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-  .col { display: flex; flex-direction: column; gap: 16px; }
-  .solo { max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-  table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  td { border: 1px solid #cfcfcf; padding: 4px 8px; }
-  .shead { color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; }
-  .shead.ent { background: #C0392B; border-color: #C0392B; }
-  .shead.sai { background: #1E8449; border-color: #1E8449; }
-  tr.colhdr td { background: #ececec; font-weight: 700; color: #555; }
-  .lbl { text-align: left; }
-  .qtd { text-align: right; white-space: nowrap; color: #555; }
-  .val { text-align: right; white-space: nowrap; }
-  .pct { text-align: right; width: 46px; color: #555; }
-  .empty { text-align: center; color: #999; }
-  tr.total td { background: #eee; font-weight: 700; }
-  table.result .rhead { background: #2f6f4f; color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; border-color: #2f6f4f; }
-  tr.saldo td { font-weight: 700; }
-  tr.saldo.pos td { background: #84BE43; color: #1a3a10; }
-  tr.saldo.neg td { background: #E4574C; color: #fff; }
-  .nota { font-size: 9px; color: #777; line-height: 1.5; margin-top: 2px; }
+  ${regrasMov('')}
   @media print { body { padding: 0; } .report { max-width: none; } }
   @page { margin: 14mm; }
 </style>

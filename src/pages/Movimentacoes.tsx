@@ -8,8 +8,14 @@ import { useFetch } from '../hooks/useFetch'
 import { apiFetch } from '../auth/api'
 import { formatDate, moeda, getErrorMessage } from '../utils/format'
 import { UNIDADE_LABEL, type UnidadeMedida } from '../utils/unidades'
-import { gerarRelatorioMovimentacoes, type RelatorioMovimento } from '../utils/relatorioMovimentacoes'
+import { montarResumoMovimentacoesAnexo, type RelatorioMovimento } from '../utils/relatorioMovimentacoes'
+import { gerarRelatorioEspelho, type EspelhoCelula, type EspelhoCard } from '../utils/relatorioEspelho'
 import { C } from '../theme'
+
+// Escapa texto para interpolar com segurança na linha de filtros (que aceita HTML).
+function escHtml(s: string): string {
+  return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string))
+}
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -277,16 +283,21 @@ function FiltroSelect({ label, value, onChange, options, placeholder }: {
   )
 }
 
-function RelatorioButton({ onClick, disabled, label }: { onClick: () => void; disabled: boolean; label: string }) {
+function RelatorioButton({ onClick, disabled, label, title, variant = 'solid' }: {
+  onClick: () => void; disabled: boolean; label: string; title?: string; variant?: 'solid' | 'outline'
+}) {
+  const solid = variant === 'solid'
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      title="Gerar relatório em PDF do que está sendo exibido"
+      title={title ?? 'Gerar relatório em PDF do que está sendo exibido'}
       style={{
         display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
-        padding: '9px 16px', borderRadius: 8, border: 'none',
-        background: disabled ? '#E2EBE7' : C.activeItem, color: disabled ? '#9DB8AD' : C.activeIcon,
+        padding: '9px 16px', borderRadius: 8,
+        border: solid ? 'none' : '1px solid #E2EBE7',
+        background: solid ? (disabled ? '#E2EBE7' : C.activeItem) : '#fff',
+        color: disabled ? '#9DB8AD' : solid ? C.activeIcon : '#4B7A6A',
         fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', alignSelf: 'flex-end',
       }}
     >
@@ -520,17 +531,97 @@ export default function Movimentacoes() {
   // Gera o relatório PDF a partir do que está sendo exibido (`linhas`, já com
   // aba, filtro e busca aplicados). O escopo segue a aba: entradas, saídas ou
   // geral (aba combinada).
-  function gerarPDF() {
+  // Relatório em PDF: espelho da tela (cards de resumo + a tabela da aba atual,
+  // mesmas colunas da aba, sem a coluna de Ação) e, ABAIXO, o Resumo de
+  // Movimentações do que está sendo exibido — tudo num só documento.
+  function gerarEspelho() {
+    const partesMeta: string[] = []
+    const escopoTxt = aba === 'ENTRADA' ? 'Entradas (compras)' : aba === 'SAIDA' ? 'Saídas (vendas)' : 'Entradas e saídas'
+    partesMeta.push(`Visão: <b>${escopoTxt}</b>`)
+    if (aba === 'ENTRADA' && filtroClienteId) {
+      const n = clientes?.find(c => String(c.id) === filtroClienteId)?.nome
+      if (n) partesMeta.push(`Cliente/Fornecedor: <b>${escHtml(n)}</b>`)
+    }
+    if (aba === 'SAIDA' && filtroProdutoId) {
+      const n = produtos?.find(p => String(p.id) === filtroProdutoId)?.nome
+      if (n) partesMeta.push(`Produto: <b>${escHtml(n)}</b>`)
+    }
+    if (busca.trim()) partesMeta.push(`Busca: <b>${escHtml(busca.trim())}</b>`)
+
+    const cards: EspelhoCard[] = [{ label: 'Registros', valor: String(resumo.registros), cor: '#1A2E25' }]
+    if (aba === 'TODOS') {
+      cards.push(
+        { label: 'Total Entradas', valor: moeda(resumo.totalEnt), cor: COR.ENTRADA },
+        { label: 'Total Saídas', valor: moeda(resumo.totalSai), cor: COR.SAIDA },
+      )
+    } else {
+      cards.push(
+        { label: 'Quantidade total', valor: resumo.qtdLabel },
+        { label: 'Valor total', valor: moeda(resumo.valor), cor: aba === 'SAIDA' ? COR.SAIDA : COR.ENTRADA },
+      )
+    }
+
+    // Descritores de coluna (rótulo + alinhamento + célula) por aba.
+    type ColDef = { label: string; align?: 'left' | 'right' | 'center'; cell: (r: MovimentoView) => EspelhoCelula }
+    const muted = (texto: string): EspelhoCelula => ({ texto, cor: '#6B8C7D' })
+    const qtdTxt = (r: MovimentoView) => r.qtd != null ? `${brNum(r.qtd)}${r.unidade ? ' ' + UNIDADE_LABEL[r.unidade] : ''}` : '—'
+
+    const colData: ColDef = { label: 'Data', cell: r => muted(formatDate(r.data)) }
+    const colCliente: ColDef = { label: 'Cliente/Forn.', cell: r => ({ texto: r.fornecedorClienteNome }) }
+    const colProduto: ColDef = { label: 'Produto', cell: r => ({ texto: r.produtoNome }) }
+    const colQtd: ColDef = { label: 'Quantidade', align: 'right', cell: r => ({ texto: qtdTxt(r), cor: '#6B8C7D', nowrap: true }) }
+    const colPreco: ColDef = { label: 'Preço', align: 'right', cell: r => ({ texto: r.preco != null ? moeda(r.preco) : '—', cor: '#6B8C7D', nowrap: true }) }
+    const colTotal: ColDef = { label: 'Total', align: 'right', cell: r => ({ texto: `${r.tipo === 'ENTRADA' ? '− ' : '+ '}${moeda(r.total)}`, cor: COR[r.tipo], negrito: true, nowrap: true }) }
+    const colDescricao: ColDef = { label: 'Descrição', cell: r => muted(r.descricao ?? '—') }
+
+    let defs: ColDef[]
+    if (aba === 'TODOS') {
+      defs = [
+        colData,
+        { label: 'Tipo', cell: r => ({ texto: r.tipo === 'ENTRADA' ? '↑ Entrada' : '↓ Saída', cor: COR[r.tipo], negrito: true }) },
+        colCliente, colProduto, colQtd, colPreco, colTotal, colDescricao,
+      ]
+    } else if (aba === 'ENTRADA') {
+      defs = [
+        colData, colCliente, colProduto, colQtd, colPreco, colTotal,
+        { label: 'Balanço', align: 'right', cell: r => ({ texto: moeda(r.saldo), cor: '#16a34a', negrito: true, nowrap: true }) },
+        { label: 'Valor Detalhado', cell: r => muted(r.valorDetalhado ?? '—') },
+        colDescricao,
+      ]
+    } else {
+      defs = [
+        colData, colCliente, colProduto, colQtd, colPreco, colTotal,
+        { label: 'NF', cell: r => ({ texto: r.nf ?? '—', cor: '#6B8C7D', nowrap: true }) },
+        { label: 'Motorista', cell: r => muted(r.motorista ?? '—') },
+        { label: 'Veículo', cell: r => ({ texto: r.veiculo ?? '—', cor: '#6B8C7D', nowrap: true }) },
+        { label: 'Transportadora', cell: r => muted(r.transportadora ?? '—') },
+        colDescricao,
+      ]
+    }
+
+    // Resumo de Movimentações (agrupado por produto/cliente) para o anexo.
     const escopo = aba === 'ENTRADA' ? 'ENTRADA' : aba === 'SAIDA' ? 'SAIDA' : 'GERAL'
     const movs: RelatorioMovimento[] = linhas.map(m => ({
       tipo: m.tipo, data: m.data, total: m.total, qtd: m.qtd, unidade: m.unidade,
       produtoNome: m.produtoNome, clienteNome: m.fornecedorClienteNome,
     }))
-    gerarRelatorioMovimentacoes(movs, {
+    const anexoHtml = montarResumoMovimentacoesAnexo(movs, {
       escopo,
       clienteEntradas: clientes?.find(c => String(c.id) === filtroClienteId)?.nome,
       produtoSaidas: produtos?.find(p => String(p.id) === filtroProdutoId)?.nome,
       busca: busca.trim() || undefined,
+    })
+
+    gerarRelatorioEspelho({
+      titulo: 'Movimentações',
+      subtitulo: SUBTITULO[aba],
+      meta: partesMeta.join(' &nbsp;·&nbsp; '),
+      cards,
+      colunas: defs.map(d => ({ label: d.label, align: d.align })),
+      linhas: linhas.map(r => defs.map(d => d.cell(r))),
+      landscape: true,
+      vazioMsg: 'Nenhum movimento encontrado para os filtros aplicados.',
+      anexoHtml,
     })
   }
 
@@ -704,9 +795,10 @@ export default function Movimentacoes() {
                 <SearchBar value={busca} onChange={setBusca} />
               </div>
               <RelatorioButton
-                onClick={gerarPDF}
+                onClick={gerarEspelho}
                 disabled={linhas.length === 0}
-                label= 'Gerar Relatório'
+                label="Relatório (PDF)"
+                title="Gerar relatório (PDF): espelho da tela + Resumo de Movimentações abaixo"
               />
             </div>
 

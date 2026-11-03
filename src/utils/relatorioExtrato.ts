@@ -109,10 +109,31 @@ function linhasComPct(grupos: Grupo[], base: number): string {
 
 // ── Geração ────────────────────────────────────────────────────────────────────
 
-export function gerarRelatorioExtrato(
-  lancamentos: RelatorioLancamento[],
-  contexto: RelatorioContexto,
-): void {
+// Regras de estilo das tabelas do resumo. `p` é o prefixo de escopo: '' no
+// documento próprio (gerarRelatorioExtrato) ou '.resumo-caixa ' quando embutido
+// como anexo abaixo de um espelho, evitando colisão com os estilos do espelho.
+function regrasGrid(p: string): string {
+  return `
+  ${p}.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  ${p}.col { display: flex; flex-direction: column; gap: 16px; }
+  ${p}table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  ${p}td { border: 1px solid #cfcfcf; padding: 4px 8px; }
+  ${p}.shead { background: #E2731C; color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; border-color: #E2731C; }
+  ${p}tr.colhdr td { background: #F3D9C1; font-weight: 700; color: #7a4a1e; }
+  ${p}.lbl { text-align: left; }
+  ${p}.val { text-align: right; white-space: nowrap; }
+  ${p}.pct { text-align: right; width: 48px; color: #555; }
+  ${p}.empty { text-align: center; color: #999; }
+  ${p}tr.total td { background: #F6C89B; font-weight: 700; }
+  ${p}table.result .rhead { background: #2f6f4f; color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; border-color: #2f6f4f; }
+  ${p}tr.saldo td { font-weight: 700; }
+  ${p}tr.saldo.pos td { background: #84BE43; color: #1a3a10; }
+  ${p}tr.saldo.neg td { background: #E4574C; color: #fff; }
+  ${p}.nota { font-size: 9px; color: #777; text-transform: uppercase; line-height: 1.5; margin-top: 2px; }`
+}
+
+// Monta o título e o grid de tabelas do Resumo Caixa a partir dos lançamentos.
+function construirResumo(lancamentos: RelatorioLancamento[]): { titulo: string; grid: string } {
   const entradasCategoria = agrupar(lancamentos, 'ENTRADA', 'categoria')
   const entradasConta = agrupar(lancamentos, 'ENTRADA', 'conta')
   const saidasCategoria = agrupar(lancamentos, 'SAIDA', 'categoria')
@@ -126,42 +147,7 @@ export function gerarRelatorioExtrato(
   const periodo = periodoLabel(lancamentos)
   const titulo = `RESUMO CAIXA${periodo ? ` — ${periodo}` : ''}`
 
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<title>${esc(titulo)}</title>
-<style>
-  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #fff; }
-  .report { max-width: 840px; margin: 0 auto; }
-  .title { background: #404040; color: #fff; font-weight: 700; font-size: 15px; text-align: center; padding: 10px; letter-spacing: .04em; }
-  .meta { font-size: 10px; color: #555; padding: 8px 2px 16px; line-height: 1.6; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-  .col { display: flex; flex-direction: column; gap: 16px; }
-  table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  td { border: 1px solid #cfcfcf; padding: 4px 8px; }
-  .shead { background: #E2731C; color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; border-color: #E2731C; }
-  tr.colhdr td { background: #F3D9C1; font-weight: 700; color: #7a4a1e; }
-  .lbl { text-align: left; }
-  .val { text-align: right; white-space: nowrap; }
-  .pct { text-align: right; width: 48px; color: #555; }
-  .empty { text-align: center; color: #999; }
-  tr.total td { background: #F6C89B; font-weight: 700; }
-  table.result .rhead { background: #2f6f4f; color: #fff; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .03em; border-color: #2f6f4f; }
-  tr.saldo td { font-weight: 700; }
-  tr.saldo.pos td { background: #84BE43; color: #1a3a10; }
-  tr.saldo.neg td { background: #E4574C; color: #fff; }
-  .nota { font-size: 9px; color: #777; text-transform: uppercase; line-height: 1.5; margin-top: 2px; }
-  @media print { body { padding: 0; } .report { max-width: none; } }
-  @page { margin: 14mm; }
-</style>
-</head>
-<body>
-  <div class="report">
-    <div class="title">${esc(titulo)}</div>
-    <div class="meta">${metaLinha(contexto)}</div>
-    <div class="grid">
+  const grid = `<div class="grid">
       <div class="col">
         <table>
           <tr><td class="shead" colspan="3">Entradas por Categoria</td></tr>
@@ -208,7 +194,51 @@ export function gerarRelatorioExtrato(
           <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalSaidas)}</td><td class="pct">${totalSaidas > 0 ? '100%' : '0%'}</td></tr>
         </table>
       </div>
-    </div>
+    </div>`
+
+  return { titulo, grid }
+}
+
+// Fragmento do Resumo Caixa para embutir ABAIXO de um espelho. Os estilos são
+// escopados em .resumo-caixa para não colidir com os do espelho.
+export function montarResumoCaixaAnexo(lancamentos: RelatorioLancamento[]): string {
+  const { titulo, grid } = construirResumo(lancamentos)
+  return `<style>
+  .resumo-caixa { margin-top: 28px; }
+  .resumo-caixa .rc-title { background: #404040; color: #fff; font-weight: 700; font-size: 14px; text-align: center; padding: 10px; letter-spacing: .04em; margin-bottom: 14px; }
+  ${regrasGrid('.resumo-caixa ')}
+  .resumo-caixa tbody tr:last-child td { border-bottom: 1px solid #cfcfcf; }
+</style>
+<section class="resumo-caixa"><div class="rc-title">${esc(titulo)}</div>${grid}</section>`
+}
+
+export function gerarRelatorioExtrato(
+  lancamentos: RelatorioLancamento[],
+  contexto: RelatorioContexto,
+): void {
+  const { titulo, grid } = construirResumo(lancamentos)
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>${esc(titulo)}</title>
+<style>
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #fff; }
+  .report { max-width: 840px; margin: 0 auto; }
+  .title { background: #404040; color: #fff; font-weight: 700; font-size: 15px; text-align: center; padding: 10px; letter-spacing: .04em; }
+  .meta { font-size: 10px; color: #555; padding: 8px 2px 16px; line-height: 1.6; }
+  ${regrasGrid('')}
+  @media print { body { padding: 0; } .report { max-width: none; } }
+  @page { margin: 14mm; }
+</style>
+</head>
+<body>
+  <div class="report">
+    <div class="title">${esc(titulo)}</div>
+    <div class="meta">${metaLinha(contexto)}</div>
+    ${grid}
   </div>
   <script>window.onload = function () { window.focus(); window.print(); }</script>
 </body>

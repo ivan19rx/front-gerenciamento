@@ -8,6 +8,8 @@ import { ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch, apiFetchJson } from '../auth/api'
 import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/format'
+import { montarResumoCaixaAnexo, type RelatorioLancamento } from '../utils/relatorioExtrato'
+import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula, type EspelhoSecao } from '../utils/relatorioEspelho'
 import { C } from '../theme'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -52,6 +54,31 @@ const EMPTY_FORM: FormState = {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+// Escapa texto para interpolar com segurança na linha de filtros (que aceita HTML).
+function escHtml(s: string): string {
+  return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string))
+}
+
+// Colunas e células do espelho — espelham a tabela da tela (sem a coluna de Ação).
+const COLUNAS_ESPELHO: EspelhoColuna[] = [
+  { label: 'Data' }, { label: 'Valor', align: 'right' }, { label: 'Cliente/Forn.' },
+  { label: 'Conta' }, { label: 'Categoria' }, { label: 'Classificação' }, { label: 'Observação' },
+]
+
+function linhaEspelho(l: LancamentoAPI): EspelhoCelula[] {
+  const ent = l.tipo === 'ENTRADA'
+  const num = Math.abs(parseFloat(l.valor) || 0)
+  return [
+    { texto: formatDate(l.dataLancamento), cor: '#6B8C7D' },
+    { texto: `${ent ? '+ ' : '- '}${moeda(num)}`, cor: ent ? '#16a34a' : '#dc2626', negrito: true, nowrap: true },
+    { texto: l.fornecedorCliente?.nome ?? '—', cor: '#6B8C7D' },
+    { texto: l.conta?.nome ?? '—', cor: '#6B8C7D' },
+    { texto: l.categoria?.nome ?? '—', cor: '#6B8C7D' },
+    { texto: l.classificacao ?? '—', cor: '#6B8C7D' },
+    { texto: l.observacao ?? '—', cor: '#6B8C7D' },
+  ]
+}
 
 function getMesAnoKey(iso: string) {
   const d = parseDataLocal(iso)
@@ -243,6 +270,32 @@ function AddButton({ onClick }: { onClick: () => void }) {
   )
 }
 
+function RelatorioButton({ onClick, disabled, label, title, variant = 'solid' }: {
+  onClick: () => void; disabled: boolean; label: string; title: string; variant?: 'solid' | 'outline'
+}) {
+  const solid = variant === 'solid'
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+        padding: '9px 16px', borderRadius: 8,
+        border: solid ? 'none' : '1px solid #E2EBE7',
+        background: solid ? (disabled ? '#E2EBE7' : C.activeItem) : '#fff',
+        color: disabled ? '#9DB8AD' : solid ? C.activeIcon : '#4B7A6A',
+        fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
+      </svg>
+      {label}
+    </button>
+  )
+}
+
 function BuscaBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
@@ -287,6 +340,55 @@ function TipoTabs({ value, onChange }: { value: '' | 'ENTRADA' | 'SAIDA'; onChan
   )
 }
 
+const labelStyle: React.CSSProperties = {
+  fontSize: 12, fontWeight: 600, color: '#6B8C7D',
+  textTransform: 'uppercase', letterSpacing: '0.04em',
+}
+
+function SelectFiltro({ label, value, onChange, options, placeholder }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: Opcao[]
+  placeholder: string
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 160 }}>
+      <label style={labelStyle}>{label}</label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25', background: '#F9FAFB', cursor: 'pointer', outline: 'none' }}
+      >
+        <option value="">{placeholder}</option>
+        {options.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function DateFiltro({ label, value, onChange, min, max }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  min?: string
+  max?: string
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 160 }}>
+      <label style={labelStyle}>{label}</label>
+      <input
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={e => onChange(e.target.value)}
+        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25', background: '#F9FAFB', cursor: 'pointer', outline: 'none' }}
+      />
+    </div>
+  )
+}
+
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default function Lancamentos() {
@@ -308,15 +410,39 @@ export default function Lancamentos() {
   const [abertos, setAbertos] = useState<Record<string, boolean>>({})
   const [ordens, setOrdens]   = useState<Record<string, 'recente' | 'antigo'>>({})
 
-  // filtros: busca por texto e tipo (entrada/saída)
-  const [busca, setBusca]         = useState('')
-  const [filtroTipo, setFiltroTipo] = useState<'' | 'ENTRADA' | 'SAIDA'>('')
-  const filtroAtivo = busca.trim() !== '' || filtroTipo !== ''
+  // filtros: busca livre, tipo, cliente/conta/categoria e período (de/até)
+  const [busca, setBusca]                 = useState('')
+  const [filtroTipo, setFiltroTipo]       = useState<'' | 'ENTRADA' | 'SAIDA'>('')
+  const [filtroClienteId, setFiltroClienteId]     = useState('')
+  const [filtroContaId, setFiltroContaId]         = useState('')
+  const [filtroCategoriaId, setFiltroCategoriaId] = useState('')
+  const [dataInicio, setDataInicio]       = useState('')
+  const [dataFim, setDataFim]             = useState('')
+
+  const filtroAtivo =
+    busca.trim() !== '' || filtroTipo !== '' ||
+    filtroClienteId !== '' || filtroContaId !== '' || filtroCategoriaId !== '' ||
+    dataInicio !== '' || dataFim !== ''
+
+  function limparFiltros() {
+    setBusca('')
+    setFiltroTipo('')
+    setFiltroClienteId('')
+    setFiltroContaId('')
+    setFiltroCategoriaId('')
+    setDataInicio('')
+    setDataFim('')
+  }
 
   // aplica os filtros antes de agrupar por mês
   const dadosFiltrados = useMemo(() => {
     let arr = data ?? []
     if (filtroTipo) arr = arr.filter(l => l.tipo === filtroTipo)
+    if (filtroClienteId)   arr = arr.filter(l => String(l.fornecedorClienteId) === filtroClienteId)
+    if (filtroContaId)     arr = arr.filter(l => String(l.contaId) === filtroContaId)
+    if (filtroCategoriaId) arr = arr.filter(l => String(l.categoriaId) === filtroCategoriaId)
+    if (dataInicio) arr = arr.filter(l => l.dataLancamento.slice(0, 10) >= dataInicio)
+    if (dataFim)    arr = arr.filter(l => l.dataLancamento.slice(0, 10) <= dataFim)
     const q = busca.trim().toLowerCase()
     if (q) {
       arr = arr.filter(l =>
@@ -330,7 +456,7 @@ export default function Lancamentos() {
       )
     }
     return arr
-  }, [data, busca, filtroTipo])
+  }, [data, busca, filtroTipo, filtroClienteId, filtroContaId, filtroCategoriaId, dataInicio, dataFim])
 
   // agrupa lançamentos por mês/ano
   const grupos = useMemo(() => {
@@ -368,6 +494,51 @@ export default function Lancamentos() {
         ? new Date(b.dataLancamento).getTime() - new Date(a.dataLancamento).getTime()
         : new Date(a.dataLancamento).getTime() - new Date(b.dataLancamento).getTime()
     )
+  }
+
+  // Linha de filtros (aceita HTML) compartilhada pelos relatórios do financeiro.
+  function metaRelatorio(): string {
+    const partes: string[] = []
+    if (filtroTipo) partes.push(`Tipo: <b>${filtroTipo === 'ENTRADA' ? 'Entradas' : 'Saídas'}</b>`)
+    if (busca.trim()) partes.push(`Busca: <b>${escHtml(busca.trim())}</b>`)
+    return partes.join(' &nbsp;·&nbsp; ')
+  }
+
+  // Relatório (PDF): espelho dos lançamentos — cada mês vira um bloco (cabeçalho
+  // com resumo entradas/saídas/saldo + tabela), exatamente como na tela — e, logo
+  // ABAIXO, o Resumo Caixa dos lançamentos filtrados, num só documento.
+  function gerarEspelho() {
+    const secoes: EspelhoSecao[] = grupos.map(g => {
+      const entradas = g.items.filter(l => l.tipo === 'ENTRADA').reduce((a, l) => a + parseFloat(l.valor), 0)
+      const saidas   = g.items.filter(l => l.tipo === 'SAIDA').reduce((a, l) => a + parseFloat(l.valor), 0)
+      const saldo    = entradas - saidas
+      return {
+        titulo: g.label,
+        contador: `${g.items.length} lançamento${g.items.length !== 1 ? 's' : ''}`,
+        resumo: [
+          { label: 'Entradas', valor: `+ ${moeda(entradas)}`, cor: '#16a34a' },
+          { label: 'Saídas',   valor: `- ${moeda(saidas)}`,   cor: '#dc2626' },
+          { label: 'Saldo',    valor: `${saldo >= 0 ? '+ ' : '- '}${moeda(Math.abs(saldo))}`, cor: saldo >= 0 ? '#16a34a' : '#dc2626' },
+        ],
+        colunas: COLUNAS_ESPELHO,
+        linhas: sortItems(g.items, g.key).map(linhaEspelho),
+      }
+    })
+    const lancs: RelatorioLancamento[] = dadosFiltrados.map(l => ({
+      dataLancamento: l.dataLancamento,
+      tipo: l.tipo,
+      valor: l.valor,
+      conta: l.conta ? { nome: l.conta.nome } : null,
+      categoria: l.categoria ? { nome: l.categoria.nome } : null,
+    }))
+    gerarRelatorioEspelho({
+      titulo: 'Lançamentos',
+      subtitulo: `${dadosFiltrados.length} lançamento(s) em ${grupos.length} mês(es)`,
+      meta: metaRelatorio(),
+      secoes,
+      // Resumo Caixa impresso logo abaixo do espelho, no mesmo documento.
+      anexoHtml: montarResumoCaixaAnexo(lancs),
+    })
   }
 
   function openCreate() {
@@ -490,9 +661,53 @@ export default function Lancamentos() {
         {error    && <ErrorState message={error} onRetry={refetch} />}
 
         {!loading && !error && data && data.length > 0 && (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            <BuscaBar value={busca} onChange={setBusca} />
-            <TipoTabs value={filtroTipo} onChange={setFiltroTipo} />
+          <div style={{ background: '#fff', border: '1px solid #E2EBE7', borderRadius: 12, padding: '20px', marginBottom: 16 }}>
+            <p style={{ ...labelStyle, fontSize: 12, letterSpacing: '0.05em', margin: '0 0 14px' }}>Filtros</p>
+
+            {/* Busca rápida (texto livre) */}
+            <div style={{ marginBottom: 16 }}>
+              <BuscaBar value={busca} onChange={setBusca} />
+            </div>
+
+            {/* Selects */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+              <SelectFiltro label="Cliente / Fornecedor" value={filtroClienteId} onChange={setFiltroClienteId} options={clientes ?? []} placeholder="Todos" />
+              <SelectFiltro label="Conta" value={filtroContaId} onChange={setFiltroContaId} options={contas ?? []} placeholder="Todas" />
+              <SelectFiltro label="Categoria" value={filtroCategoriaId} onChange={setFiltroCategoriaId} options={categorias ?? []} placeholder="Todas" />
+            </div>
+
+            {/* Período */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+              <DateFiltro label="Período — de" value={dataInicio} max={dataFim || undefined} onChange={setDataInicio} />
+              <DateFiltro label="Período — até" value={dataFim} min={dataInicio || undefined} onChange={setDataFim} />
+            </div>
+
+            {/* Tipo + ações */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={labelStyle}>Tipo:</span>
+                <TipoTabs value={filtroTipo} onChange={setFiltroTipo} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={limparFiltros}
+                  disabled={!filtroAtivo}
+                  style={{
+                    padding: '9px 16px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#fff',
+                    color: filtroAtivo ? '#6B8C7D' : '#C4D4CC', fontSize: 14, fontWeight: 500,
+                    cursor: filtroAtivo ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  Limpar filtros
+                </button>
+                <RelatorioButton
+                  onClick={gerarEspelho}
+                  disabled={dadosFiltrados.length === 0}
+                  label="Relatório (PDF)"
+                  title="Gerar relatório (PDF): espelho dos lançamentos (por mês) + Resumo Caixa abaixo"
+                />
+              </div>
+            </div>
           </div>
         )}
 

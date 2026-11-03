@@ -7,8 +7,37 @@ import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch } from '../auth/api'
 import { formatDate, moeda } from '../utils/format'
-import { gerarRelatorioExtrato } from '../utils/relatorioExtrato'
+import { montarResumoCaixaAnexo } from '../utils/relatorioExtrato'
+import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula } from '../utils/relatorioEspelho'
 import { C } from '../theme'
+
+// Escapa texto para interpolar com segurança na linha de filtros (que aceita HTML).
+function escHtml(s: string): string {
+  return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string))
+}
+
+// Colunas do espelho — espelham exatamente a tabela da tela.
+const COLUNAS_ESPELHO: EspelhoColuna[] = [
+  { label: 'Data' }, { label: 'Tipo' }, { label: 'Valor' }, { label: 'Cliente/Forn.' },
+  { label: 'Conta' }, { label: 'Categoria' }, { label: 'Classificação' }, { label: 'Observação' },
+]
+
+function linhasEspelho(lancamentos: LancamentoItem[]): EspelhoCelula[][] {
+  return lancamentos.map(l => {
+    const ent = l.tipo === 'ENTRADA'
+    const num = Math.abs(parseFloat(l.valor) || 0)
+    return [
+      { texto: formatDate(l.dataLancamento), cor: '#6B8C7D' },
+      { texto: ent ? '▲ Entrada' : '▼ Saída', badge: ent ? 'entrada' : 'saida' },
+      { texto: `${ent ? '+ ' : '- '}${moeda(num)}`, cor: ent ? '#16a34a' : '#dc2626', negrito: true, nowrap: true },
+      { texto: l.fornecedorCliente?.nome ?? '—', cor: '#6B8C7D' },
+      { texto: l.conta?.nome ?? '—', cor: '#6B8C7D' },
+      { texto: l.categoria?.nome ?? '—', cor: '#6B8C7D' },
+      { texto: l.classificacao || '—', cor: '#6B8C7D' },
+      { texto: l.observacao || '—', cor: '#6B8C7D' },
+    ]
+  })
+}
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -259,23 +288,28 @@ function ExportButton({ onClick, disabled }: { onClick: () => void; disabled: bo
   )
 }
 
-function RelatorioButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+function RelatorioButton({ onClick, disabled, label, title, variant = 'solid' }: {
+  onClick: () => void; disabled: boolean; label: string; title: string; variant?: 'solid' | 'outline'
+}) {
+  const solid = variant === 'solid'
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      title="Gerar relatório Resumo Caixa (PDF) dos lançamentos exibidos"
+      title={title}
       style={{
         display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
-        padding: '9px 16px', borderRadius: 8, border: 'none',
-        background: disabled ? '#E2EBE7' : C.activeItem, color: disabled ? '#9DB8AD' : C.activeIcon,
+        padding: '9px 16px', borderRadius: 8,
+        border: solid ? 'none' : '1px solid #E2EBE7',
+        background: solid ? (disabled ? '#E2EBE7' : C.activeItem) : '#fff',
+        color: disabled ? '#9DB8AD' : solid ? C.activeIcon : '#4B7A6A',
         fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
       }}
     >
       <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V18a2 2 0 01-2 2z" />
       </svg>
-      Relatório PDF
+      {label}
     </button>
   )
 }
@@ -362,14 +396,43 @@ export default function ExtratoCliente() {
     return undefined
   }
 
-  function gerarPDF() {
-    gerarRelatorioExtrato(lancamentosExibidos, {
-      periodo: periodoSelecionado(),
-      cliente: nomePorId(clientes, filtros.clienteId),
-      conta: nomePorId(contas, filtros.contaId),
-      categoria: nomePorId(categorias, filtros.categoriaId),
-      tipo: filtros.tipo || 'TODOS',
-      busca: buscaRapida.trim() || undefined,
+  // Monta a linha de filtros aplicados (aceita HTML) para o cabeçalho do espelho.
+  function metaEspelho(): string {
+    const partes: string[] = []
+    const periodo = periodoSelecionado()
+    if (periodo) partes.push(`Período: <b>${escHtml(periodo)}</b>`)
+    const cliente = nomePorId(clientes, filtros.clienteId)
+    if (cliente) partes.push(`Cliente/Fornecedor: <b>${escHtml(cliente)}</b>`)
+    const conta = nomePorId(contas, filtros.contaId)
+    if (conta) partes.push(`Conta: <b>${escHtml(conta)}</b>`)
+    const categoria = nomePorId(categorias, filtros.categoriaId)
+    if (categoria) partes.push(`Categoria: <b>${escHtml(categoria)}</b>`)
+    const tipoLabel: Record<string, string> = { ENTRADA: 'Entradas', SAIDA: 'Saídas' }
+    if (filtros.tipo && filtros.tipo !== 'TODOS') partes.push(`Tipo: <b>${tipoLabel[filtros.tipo] ?? filtros.tipo}</b>`)
+    if (buscaRapida.trim()) partes.push(`Busca: <b>${escHtml(buscaRapida.trim())}</b>`)
+    return partes.join(' &nbsp;·&nbsp; ')
+  }
+
+  // Espelho da tela em PDF: cards de resumo + tabela, exatamente como exibidos.
+  function gerarEspelho() {
+    const saldoNum = extrato?.fornecedorCliente?.saldo != null
+      ? parseFloat(extrato.fornecedorCliente.saldo)
+      : resumoExibido.saldoCalculado
+    gerarRelatorioEspelho({
+      titulo: 'Extrato',
+      subtitulo: 'Filtre lançamentos por cliente, conta, categoria e tipo',
+      meta: metaEspelho(),
+      cards: [
+        { label: 'Registros', valor: String(resumoExibido.totalRegistros), cor: '#1A2E25' },
+        { label: 'Total Entradas', valor: moeda(resumoExibido.totalEntradas), cor: '#16a34a' },
+        { label: 'Total Saídas', valor: moeda(resumoExibido.totalSaidas), cor: '#dc2626' },
+        { label: 'Saldo', valor: moeda(saldoNum), cor: saldoNum >= 0 ? '#16a34a' : '#dc2626' },
+      ],
+      colunas: COLUNAS_ESPELHO,
+      linhas: linhasEspelho(lancamentosExibidos),
+      vazioMsg: 'Nenhum lançamento encontrado para os filtros aplicados.',
+      // Resumo Caixa impresso logo abaixo do espelho, no mesmo documento.
+      anexoHtml: montarResumoCaixaAnexo(lancamentosExibidos),
     })
   }
 
@@ -443,7 +506,12 @@ export default function ExtratoCliente() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <BuscaRapida value={buscaRapida} onChange={setBuscaRapida} />
             <ExportButton onClick={() => exportarCSV(lancamentosExibidos)} disabled={lancamentosExibidos.length === 0} />
-            <RelatorioButton onClick={gerarPDF} disabled={lancamentosExibidos.length === 0} />
+            <RelatorioButton
+              onClick={gerarEspelho}
+              disabled={lancamentosExibidos.length === 0}
+              label="Relatório (PDF)"
+              title="Gerar relatório (PDF): espelho da tela + Resumo Caixa abaixo"
+            />
           </div>
 
           {lancamentosExibidos.length === 0
