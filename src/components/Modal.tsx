@@ -98,14 +98,20 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
           borderRadius: 14,
           width: '100%',
           maxWidth: width,
+          // Nunca ultrapassa a viewport (descontando o padding do overlay); o
+          // corpo rola internamente quando o conteúdo é mais alto que a tela —
+          // evita que o formulário fique cortado e sem scroll em zoom maior.
+          maxHeight: 'calc(100vh - 32px)',
+          display: 'flex',
+          flexDirection: 'column',
           boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           animation: 'slideUp 0.2s ease',
           overflow: 'hidden',
           outline: 'none',
         }}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #E2EBE7' }}>
+        {/* Header (fixo no topo) */}
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #E2EBE7' }}>
           <h2 id={titleId} style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#1A2E25' }}>{title}</h2>
           <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9DB8AD', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -114,8 +120,8 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '24px' }}>
+        {/* Body (rola internamente quando o conteúdo excede a altura) */}
+        <div style={{ padding: '24px', overflowY: 'auto', minHeight: 0 }}>
           {children}
         </div>
       </div>
