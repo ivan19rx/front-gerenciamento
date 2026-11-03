@@ -8,8 +8,9 @@ import { ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch, apiFetchJson } from '../auth/api'
 import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/format'
-import { montarResumoCaixaAnexo, type RelatorioLancamento } from '../utils/relatorioExtrato'
+import { gerarRelatorioExtrato, montarResumoCaixaAnexo, type RelatorioLancamento } from '../utils/relatorioExtrato'
 import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula, type EspelhoSecao } from '../utils/relatorioEspelho'
+import { RelatorioModal, type OpcaoRelatorio } from '../components/RelatorioModal'
 import { C } from '../theme'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -78,6 +79,12 @@ function linhaEspelho(l: LancamentoAPI): EspelhoCelula[] {
     { texto: l.classificacao ?? '—', cor: '#6B8C7D' },
     { texto: l.observacao ?? '—', cor: '#6B8C7D' },
   ]
+}
+
+// Nome legível de uma opção a partir do id selecionado num filtro.
+function nomeOpcao(opcoes: Opcao[] | null | undefined, id: string): string | undefined {
+  if (!id) return undefined
+  return opcoes?.find(o => String(o.id) === id)?.nome
 }
 
 function getMesAnoKey(iso: string) {
@@ -405,6 +412,7 @@ export default function Lancamentos() {
   const [serverError,  setServerError]  = useState<string | null>(null)
   const [submitting,   setSubmitting]   = useState(false)
   const [deleting,     setDeleting]     = useState(false)
+  const [relatorioOpen, setRelatorioOpen] = useState(false)
 
   // grupos abertos — por padrão o mês mais recente começa aberto
   const [abertos, setAbertos] = useState<Record<string, boolean>>({})
@@ -496,18 +504,53 @@ export default function Lancamentos() {
     )
   }
 
+  // Descreve o período selecionado nos filtros (de/até).
+  function periodoFiltro(): string | undefined {
+    if (dataInicio && dataFim) return `${formatDate(dataInicio)} a ${formatDate(dataFim)}`
+    if (dataInicio) return `a partir de ${formatDate(dataInicio)}`
+    if (dataFim) return `até ${formatDate(dataFim)}`
+    return undefined
+  }
+
   // Linha de filtros (aceita HTML) compartilhada pelos relatórios do financeiro.
   function metaRelatorio(): string {
     const partes: string[] = []
+    const periodo = periodoFiltro()
+    if (periodo) partes.push(`Período: <b>${escHtml(periodo)}</b>`)
+    const cliente = nomeOpcao(clientes, filtroClienteId)
+    if (cliente) partes.push(`Cliente/Fornecedor: <b>${escHtml(cliente)}</b>`)
+    const conta = nomeOpcao(contas, filtroContaId)
+    if (conta) partes.push(`Conta: <b>${escHtml(conta)}</b>`)
+    const categoria = nomeOpcao(categorias, filtroCategoriaId)
+    if (categoria) partes.push(`Categoria: <b>${escHtml(categoria)}</b>`)
     if (filtroTipo) partes.push(`Tipo: <b>${filtroTipo === 'ENTRADA' ? 'Entradas' : 'Saídas'}</b>`)
     if (busca.trim()) partes.push(`Busca: <b>${escHtml(busca.trim())}</b>`)
     return partes.join(' &nbsp;·&nbsp; ')
   }
 
-  // Relatório (PDF): espelho dos lançamentos — cada mês vira um bloco (cabeçalho
-  // com resumo entradas/saídas/saldo + tabela), exatamente como na tela — e, logo
-  // ABAIXO, o Resumo Caixa dos lançamentos filtrados, num só documento.
-  function gerarEspelho() {
+  // Gera o relatório conforme a opção escolhida: só o espelho (lançamentos por
+  // mês), só o Resumo Caixa, ou os dois (espelho em cima + resumo abaixo).
+  function gerarRelatorio(opcao: OpcaoRelatorio) {
+    const lancs: RelatorioLancamento[] = dadosFiltrados.map(l => ({
+      dataLancamento: l.dataLancamento,
+      tipo: l.tipo,
+      valor: l.valor,
+      conta: l.conta ? { nome: l.conta.nome } : null,
+      categoria: l.categoria ? { nome: l.categoria.nome } : null,
+    }))
+
+    if (opcao === 'resumo') {
+      gerarRelatorioExtrato(lancs, {
+        periodo: periodoFiltro(),
+        cliente: nomeOpcao(clientes, filtroClienteId),
+        conta: nomeOpcao(contas, filtroContaId),
+        categoria: nomeOpcao(categorias, filtroCategoriaId),
+        tipo: filtroTipo || 'TODOS',
+        busca: busca.trim() || undefined,
+      })
+      return
+    }
+
     const secoes: EspelhoSecao[] = grupos.map(g => {
       const entradas = g.items.filter(l => l.tipo === 'ENTRADA').reduce((a, l) => a + parseFloat(l.valor), 0)
       const saidas   = g.items.filter(l => l.tipo === 'SAIDA').reduce((a, l) => a + parseFloat(l.valor), 0)
@@ -524,20 +567,13 @@ export default function Lancamentos() {
         linhas: sortItems(g.items, g.key).map(linhaEspelho),
       }
     })
-    const lancs: RelatorioLancamento[] = dadosFiltrados.map(l => ({
-      dataLancamento: l.dataLancamento,
-      tipo: l.tipo,
-      valor: l.valor,
-      conta: l.conta ? { nome: l.conta.nome } : null,
-      categoria: l.categoria ? { nome: l.categoria.nome } : null,
-    }))
     gerarRelatorioEspelho({
       titulo: 'Lançamentos',
       subtitulo: `${dadosFiltrados.length} lançamento(s) em ${grupos.length} mês(es)`,
       meta: metaRelatorio(),
       secoes,
-      // Resumo Caixa impresso logo abaixo do espelho, no mesmo documento.
-      anexoHtml: montarResumoCaixaAnexo(lancs),
+      // "Os dois": Resumo Caixa impresso logo abaixo do espelho, no mesmo documento.
+      anexoHtml: opcao === 'ambos' ? montarResumoCaixaAnexo(lancs) : undefined,
     })
   }
 
@@ -701,10 +737,10 @@ export default function Lancamentos() {
                   Limpar filtros
                 </button>
                 <RelatorioButton
-                  onClick={gerarEspelho}
+                  onClick={() => setRelatorioOpen(true)}
                   disabled={dadosFiltrados.length === 0}
                   label="Relatório (PDF)"
-                  title="Gerar relatório (PDF): espelho dos lançamentos (por mês) + Resumo Caixa abaixo"
+                  title="Gerar relatório (PDF) — escolha o que incluir"
                 />
               </div>
             </div>
@@ -780,6 +816,8 @@ export default function Lancamentos() {
         onCancel={() => setDeleteTarget(null)}
         loading={deleting}
       />
+
+      <RelatorioModal open={relatorioOpen} onClose={() => setRelatorioOpen(false)} onGerar={gerarRelatorio} />
     </>
   )
 }

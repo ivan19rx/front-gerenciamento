@@ -7,8 +7,9 @@ import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch } from '../auth/api'
 import { formatDate, moeda } from '../utils/format'
-import { montarResumoCaixaAnexo } from '../utils/relatorioExtrato'
+import { gerarRelatorioExtrato, montarResumoCaixaAnexo } from '../utils/relatorioExtrato'
 import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula } from '../utils/relatorioEspelho'
+import { RelatorioModal, type OpcaoRelatorio } from '../components/RelatorioModal'
 import { C } from '../theme'
 
 // Escapa texto para interpolar com segurança na linha de filtros (que aceita HTML).
@@ -326,6 +327,7 @@ export default function ExtratoCliente() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [buscaRapida, setBuscaRapida] = useState('')
+  const [relatorioOpen, setRelatorioOpen] = useState(false)
 
   // Garante que apenas a resposta da última requisição seja aplicada,
   // evitando que respostas atrasadas sobrescrevam dados mais recentes.
@@ -413,8 +415,21 @@ export default function ExtratoCliente() {
     return partes.join(' &nbsp;·&nbsp; ')
   }
 
-  // Espelho da tela em PDF: cards de resumo + tabela, exatamente como exibidos.
-  function gerarEspelho() {
+  // Gera o relatório conforme a opção escolhida: só o espelho da tela, só o
+  // Resumo Caixa, ou os dois (espelho em cima + resumo abaixo).
+  function gerarRelatorio(opcao: OpcaoRelatorio) {
+    if (opcao === 'resumo') {
+      gerarRelatorioExtrato(lancamentosExibidos, {
+        periodo: periodoSelecionado(),
+        cliente: nomePorId(clientes, filtros.clienteId),
+        conta: nomePorId(contas, filtros.contaId),
+        categoria: nomePorId(categorias, filtros.categoriaId),
+        tipo: filtros.tipo || 'TODOS',
+        busca: buscaRapida.trim() || undefined,
+      })
+      return
+    }
+
     const saldoNum = extrato?.fornecedorCliente?.saldo != null
       ? parseFloat(extrato.fornecedorCliente.saldo)
       : resumoExibido.saldoCalculado
@@ -431,8 +446,8 @@ export default function ExtratoCliente() {
       colunas: COLUNAS_ESPELHO,
       linhas: linhasEspelho(lancamentosExibidos),
       vazioMsg: 'Nenhum lançamento encontrado para os filtros aplicados.',
-      // Resumo Caixa impresso logo abaixo do espelho, no mesmo documento.
-      anexoHtml: montarResumoCaixaAnexo(lancamentosExibidos),
+      // "Os dois": Resumo Caixa impresso logo abaixo do espelho, no mesmo documento.
+      anexoHtml: opcao === 'ambos' ? montarResumoCaixaAnexo(lancamentosExibidos) : undefined,
     })
   }
 
@@ -507,10 +522,10 @@ export default function ExtratoCliente() {
             <BuscaRapida value={buscaRapida} onChange={setBuscaRapida} />
             <ExportButton onClick={() => exportarCSV(lancamentosExibidos)} disabled={lancamentosExibidos.length === 0} />
             <RelatorioButton
-              onClick={gerarEspelho}
+              onClick={() => setRelatorioOpen(true)}
               disabled={lancamentosExibidos.length === 0}
               label="Relatório (PDF)"
-              title="Gerar relatório (PDF): espelho da tela + Resumo Caixa abaixo"
+              title="Gerar relatório (PDF) — escolha o que incluir"
             />
           </div>
 
@@ -524,6 +539,8 @@ export default function ExtratoCliente() {
           }
         </>
       )}
+
+      <RelatorioModal open={relatorioOpen} onClose={() => setRelatorioOpen(false)} onGerar={gerarRelatorio} />
     </PageWrapper>
   )
 }
