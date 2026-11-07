@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFetch } from '../hooks/useFetch'
 import { PageWrapper } from '../components/PageWrapper'
 import { LoadingState, ErrorState } from '../components/TableState'
+import { DashboardGraficos } from '../components/DashboardGraficos'
 import { parseDataLocal, formatDate, moeda } from '../utils/format'
 import { C } from '../theme'
 
@@ -233,15 +234,16 @@ export default function Dashboard() {
   }, [clientes])
 
   // Lançamentos dentro do período escolhido (todos, se "Geral").
+  const faixa = useMemo(() => intervalo(periodo), [periodo])
+
   const noPeriodo = useMemo(() => {
     if (!lancamentos) return []
-    const faixa = intervalo(periodo)
     if (!faixa) return lancamentos
     return lancamentos.filter(l => {
       const d = parseDataLocal(l.dataLancamento)
       return d >= faixa.inicio && d <= faixa.fim
     })
-  }, [lancamentos, periodo])
+  }, [lancamentos, faixa])
 
   // Totais do período (antes vinham de /lancamentos/resumo, que é sempre geral).
   const resumo = useMemo(() => {
@@ -305,6 +307,8 @@ export default function Dashboard() {
             <Card label="Total Saídas"      value={moeda(resumo.totalSaidas)}       color="#dc2626" />
             <Card label="Saldo Final"       value={moeda(resumo.saldoFinal)}        color={resumo.saldoFinal >= 0 ? '#16a34a' : '#dc2626'} />
           </div>
+
+          <DashboardGraficos todos={lancamentos ?? []} noPeriodo={noPeriodo} faixa={faixa} />
 
           {/* Seções */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>

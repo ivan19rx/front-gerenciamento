@@ -23,3 +23,14 @@
 body {
   font-variant-numeric: tabular-nums;
 }
+
+/* Tokens de cor no padrão do shadcn/ui (usados pelo componente de gráficos em
+   components/ui/chart.tsx), com as cores do site. Geram classes como
+   bg-background, text-muted-foreground e border-border. */
+@theme inline {
+  --color-background: #FFFFFF;
+  --color-foreground: #1A2E25;
+  --color-muted: #F1F5F3;
+  --color-muted-foreground: #557063;
+  --color-border: #E2EBE7;
+}
