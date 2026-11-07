@@ -81,7 +81,9 @@ export function Layout() {
 
         {/* Page content via Outlet */}
         <main style={{ flex: 1, background: C.mainBg, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column' }}>
-          <Outlet />
+          {/* key por empresa: ao alternar de empresa, a página é remontada e
+              descarta estado local (filtros, seleção) da empresa anterior. */}
+          <Outlet key={impersonando?.id ?? 'propria'} />
         </main>
       </div>
     </div>

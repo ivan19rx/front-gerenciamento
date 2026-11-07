@@ -4,6 +4,7 @@ import { C } from '../theme'
 import { useAuth } from '../auth/useAuth'
 import { authStore } from '../auth/store'
 import { SessionTime } from '../auth/SessionTime'
+import { EmpresaSwitcher } from './admin/EmpresaSwitcher'
 
 // Iniciais a partir do nome da empresa (ex: "Alfa Comércio" → "AC").
 function iniciais(nome: string): string {
@@ -243,6 +244,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   // está acessando (impersonação).
   const empresa = auth.role === 'ADMIN' ? auth.selectedEmpresa : auth.empresa
   const nomeEmpresa = empresa?.nomeFantasia || empresa?.razaoSocial || 'Empresa'
+  const impersonando = auth.role === 'ADMIN' ? auth.selectedEmpresa : null
+
+  function voltarAoPainel() {
+    authStore.clearSelectedEmpresa()
+    navigate('/admin', { replace: true })
+  }
 
   function handleLogout() {
     authStore.logout()
@@ -304,6 +311,28 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       <div style={{ padding: '8px 12px 20px' }}>
         {userMenuOpen && (
           <>
+            {impersonando && (
+              <>
+                <EmpresaSwitcher atual={impersonando} onEscolher={() => setUserMenuOpen(false)} />
+                <button
+                  onClick={voltarAoPainel}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                    padding: '10px 12px', marginBottom: 4, borderRadius: 8,
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    textAlign: 'left', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                >
+                  <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="none" stroke={C.mutedIcon} strokeWidth="1.8" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: C.mutedText }}>Voltar ao painel</span>
+                </button>
+                <div style={{ height: 1, background: C.borderColor, margin: '4px 8px 6px' }} />
+              </>
+            )}
             <SessionTime style={{ display: 'block', padding: '4px 12px 8px', fontSize: 12, color: C.mutedText }} />
             <button
               onClick={handleLogout}
@@ -334,7 +363,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, outline: `2px solid ${C.gold}44`, background: C.activeItem }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{iniciais(nomeEmpresa)}</span>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 500, color: C.userText, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nomeEmpresa}</span>
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            {impersonando && (
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', color: C.activeIcon }}>
+                Visualizando empresa
+              </span>
+            )}
+            <span style={{ fontSize: 14, fontWeight: 500, color: C.userText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nomeEmpresa}</span>
+          </span>
           <svg style={{ width: 16, height: 16, flexShrink: 0, color: C.mutedIcon, transition: 'transform 0.2s', transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
