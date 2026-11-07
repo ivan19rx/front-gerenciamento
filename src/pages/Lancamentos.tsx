@@ -7,6 +7,7 @@ import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../compon
 import { ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch, apiFetchJson } from '../auth/api'
+import { parseCentavos, centavosParaApi, apiParaCampo, DICA_VALOR } from '../utils/numero'
 import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/format'
 import { gerarRelatorioExtrato, montarResumoCaixaAnexo, type RelatorioLancamento } from '../utils/relatorioExtrato'
 import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula, type EspelhoSecao } from '../utils/relatorioEspelho'
@@ -100,8 +101,10 @@ function getMesAnoLabel(key: string) {
 
 function validate(form: FormState) {
   const errors: Partial<Record<keyof FormState, string>> = {}
+  const valorCentavos = parseCentavos(form.valor)
   if (!form.valor.trim())                errors.valor               = 'Valor é obrigatório'
-  else if (isNaN(parseFloat(form.valor))) errors.valor              = 'Valor deve ser um número'
+  else if (valorCentavos === null)       errors.valor               = `Valor inválido. ${DICA_VALOR}`
+  else if (valorCentavos <= 0)           errors.valor               = 'O valor deve ser maior que zero'
   if (!form.dataLancamento)              errors.dataLancamento      = 'Data é obrigatória'
   if (!form.fornecedorClienteId)         errors.fornecedorClienteId = 'Selecione um cliente/fornecedor'
   if (!form.contaId)                     errors.contaId             = 'Selecione uma conta'
@@ -214,7 +217,7 @@ function LancamentoForm({ form, errors, serverError, submitting, onChange, onSub
       </div>
       <div style={row2}>
         <Field label="Valor (R$)" error={errors.valor}>
-          <Input placeholder="Ex: 150.00" value={form.valor} error={!!errors.valor}
+          <Input placeholder="Ex: 1.234,56" inputMode="decimal" value={form.valor} error={!!errors.valor}
             onChange={e => onChange({ ...form, valor: (e.target as HTMLInputElement).value })} />
         </Field>
         <Field label="Observação">
@@ -588,7 +591,7 @@ export default function Lancamentos() {
     setForm({
       dataLancamento: row.dataLancamento.split('T')[0],
       tipo: row.tipo,
-      valor: row.valor,
+      valor: apiParaCampo(row.valor),
       observacao: row.observacao ?? '',
       fornecedorClienteId: String(row.fornecedorClienteId),
       contaId: String(row.contaId),
@@ -614,7 +617,8 @@ export default function Lancamentos() {
     return {
       dataLancamento: f.dataLancamento,
       tipo: f.tipo,
-      valor: f.valor,
+      // validado antes do envio; vai como decimal exato ("1234.56")
+      valor: centavosParaApi(parseCentavos(f.valor) ?? 0),
       observacao: f.observacao.trim() || null,
       fornecedorClienteId: Number(f.fornecedorClienteId),
       contaId: f.contaId ? Number(f.contaId) : null,

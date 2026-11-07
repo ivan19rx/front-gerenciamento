@@ -6,6 +6,7 @@ import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../compon
 import { useCrud } from '../hooks/useCrud'
 import { useFetch } from '../hooks/useFetch'
 import { formatDateLong, moeda } from '../utils/format'
+import { parseCentavos, centavosParaApi, apiParaCampo, DICA_VALOR } from '../utils/numero'
 import { C } from '../theme'
 
 
@@ -32,9 +33,31 @@ interface FormState {
   nome: string
   saldo: string
   ativo: string
+  // Saldo exibido quando o formulário de edição foi aberto ('' ao criar).
+  // Serve para (1) só enviar o saldo se o usuário mudou o campo e (2) o
+  // backend recusar o ajuste se o saldo mudou nesse meio-tempo.
+  saldoOriginal: string
 }
 
-const EMPTY_FORM: FormState = { nome: '', saldo: '', ativo: 'true' }
+const EMPTY_FORM: FormState = { nome: '', saldo: '', ativo: 'true', saldoOriginal: '' }
+
+function buildBody(f: FormState) {
+  const body: Record<string, unknown> = { nome: f.nome, ativo: f.ativo === 'true' }
+  const novo = f.saldo.trim() ? parseCentavos(f.saldo, { permitirNegativo: true }) : null
+  if (!f.saldoOriginal) {
+    // criação: saldo inicial opcional
+    if (novo !== null) body.saldo = centavosParaApi(novo)
+  } else {
+    // edição: só envia se o usuário alterou o saldo
+    const original = parseCentavos(f.saldoOriginal, { permitirNegativo: true })
+    const alterado = (novo ?? 0) !== original
+    if (alterado) {
+      body.saldo = centavosParaApi(novo ?? 0)
+      body.saldoEsperado = f.saldoOriginal
+    }
+  }
+  return body
+}
 
 
 function mapToRow(item: FornecedorCliente): ClienteRow {
@@ -100,7 +123,9 @@ function ResumoSaldos({ receber, pagar }: { receber: number; pagar: number }) {
 function validate(form: FormState) {
   const errors: Partial<FormState> = {}
   if (!form.nome.trim()) errors.nome = 'Nome é obrigatório'
-  if (form.saldo.trim() && isNaN(parseFloat(form.saldo))) errors.saldo = 'Saldo deve ser um número'
+  if (form.saldo.trim() && parseCentavos(form.saldo, { permitirNegativo: true }) === null) {
+    errors.saldo = `Saldo inválido. ${DICA_VALOR}`
+  }
   return errors
 }
 
@@ -141,7 +166,8 @@ function ClienteForm({ form, errors, serverError, submitting, onChange, onSubmit
 
       <Field label="Saldo (R$) — opcional" error={errors.saldo}>
         <Input
-          placeholder="Ex: 150.00 ou -80.00"
+          placeholder="Ex: 150,00 ou -80,00"
+          inputMode="decimal"
           value={form.saldo}
           error={!!errors.saldo}
           onChange={e => onChange({ ...form, saldo: e.target.value })}
@@ -182,8 +208,8 @@ export default function Clientes() {
   const crud = useCrud<FornecedorCliente, FormState>({
     endpoint: '/fornecedores-clientes',
     emptyForm: EMPTY_FORM,
-    toForm: raw => ({ nome: raw.nome, saldo: raw.saldo, ativo: String(raw.ativo) }),
-    buildBody: f => ({ nome: f.nome, saldo: f.saldo, ativo: f.ativo === 'true' }),
+    toForm: raw => ({ nome: raw.nome, saldo: apiParaCampo(raw.saldo), ativo: String(raw.ativo), saldoOriginal: raw.saldo }),
+    buildBody,
     validate,
     // Revalida o resumo agregado (endpoint próprio) após criar/editar/excluir.
     onMutate: resumo.refetch,

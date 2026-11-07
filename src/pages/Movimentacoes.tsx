@@ -7,6 +7,7 @@ import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../compon
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch } from '../auth/api'
 import { formatDate, moeda, getErrorMessage } from '../utils/format'
+import { parseCentavos, centavosParaApi, apiParaCampo, multiplicarCentavos, MAX_CENTAVOS, DICA_VALOR } from '../utils/numero'
 import { UNIDADE_LABEL, type UnidadeMedida } from '../utils/unidades'
 import { montarResumoMovimentacoesAnexo, type RelatorioMovimento } from '../utils/relatorioMovimentacoes'
 import { gerarRelatorioEspelho, type EspelhoCelula, type EspelhoCard } from '../utils/relatorioEspelho'
@@ -142,12 +143,13 @@ function ordemCronologica(a: Movimento, b: Movimento) {
   return a.id - b.id
 }
 
-// Total = quantidade × preço (o preço é por unidade do produto).
+// Total = quantidade × preço (o preço é por unidade do produto). Mesma conta
+// e arredondamento do backend (em centavos), então a prévia bate com o gravado.
 function calcularTotal(f: FormState): number {
-  const qtd = parseFloat(f.qtd)
-  const preco = parseFloat(f.preco)
-  if (!isNaN(qtd) && !isNaN(preco)) return qtd * preco
-  return NaN
+  const qtd = parseCentavos(f.qtd)
+  const preco = parseCentavos(f.preco)
+  if (qtd === null || preco === null) return NaN
+  return multiplicarCentavos(qtd, preco) / 100
 }
 
 function validar(f: FormState) {
@@ -155,8 +157,17 @@ function validar(f: FormState) {
   if (!f.data) errors.data = 'Data é obrigatória'
   if (!f.fornecedorClienteId) errors.fornecedorClienteId = 'Selecione o cliente/fornecedor'
   if (!f.produtoId) errors.produtoId = 'Selecione o produto'
-  if (!f.qtd.trim() || isNaN(parseFloat(f.qtd)) || parseFloat(f.qtd) <= 0) errors.qtd = 'Informe a quantidade'
-  if (!f.preco.trim() || isNaN(parseFloat(f.preco)) || parseFloat(f.preco) <= 0) errors.preco = 'Informe o preço'
+  const qtd = parseCentavos(f.qtd)
+  const preco = parseCentavos(f.preco)
+  if (!f.qtd.trim()) errors.qtd = 'Informe a quantidade'
+  else if (qtd === null) errors.qtd = `Quantidade inválida. ${DICA_VALOR}`
+  else if (qtd <= 0) errors.qtd = 'A quantidade deve ser maior que zero'
+  if (!f.preco.trim()) errors.preco = 'Informe o preço'
+  else if (preco === null) errors.preco = `Preço inválido. ${DICA_VALOR}`
+  else if (preco <= 0) errors.preco = 'O preço deve ser maior que zero'
+  if (qtd && preco && multiplicarCentavos(qtd, preco) > MAX_CENTAVOS) {
+    errors.preco = 'O total passa do limite de R$ 99.999.999,99'
+  }
   return errors
 }
 
@@ -168,8 +179,9 @@ function buildBody(f: FormState) {
     fornecedorClienteId: Number(f.fornecedorClienteId),
     produtoId: Number(f.produtoId),
     tipo: f.tipo,
-    quantidade: f.qtd.trim() ? parseFloat(f.qtd) : null,
-    preco: f.preco.trim() ? parseFloat(f.preco) : null,
+    // validados antes do envio; vão como decimal exato ("1234.56")
+    quantidade: centavosParaApi(parseCentavos(f.qtd) ?? 0),
+    preco: centavosParaApi(parseCentavos(f.preco) ?? 0),
     valorDetalhado: f.valorDetalhado.trim() || null,
     nf: f.nf.trim() || null,
     motorista: f.motorista.trim() || null,
@@ -367,11 +379,11 @@ function MovimentoForm({ form, errors, clientes, produtos, transportadoras, serv
 
       <div style={row2}>
         <Field label={qtdLabel} error={errors.qtd}>
-          <Input placeholder="Ex: 10" value={form.qtd} error={!!errors.qtd}
+          <Input placeholder="Ex: 10 ou 2,5" inputMode="decimal" value={form.qtd} error={!!errors.qtd}
             onChange={e => onChange({ ...form, qtd: (e.target as HTMLInputElement).value })} />
         </Field>
         <Field label={precoLabel} error={errors.preco}>
-          <Input placeholder="Ex: 7.05" value={form.preco} error={!!errors.preco}
+          <Input placeholder="Ex: 7,05" inputMode="decimal" value={form.preco} error={!!errors.preco}
             onChange={e => onChange({ ...form, preco: (e.target as HTMLInputElement).value })} />
         </Field>
       </div>
@@ -638,8 +650,8 @@ export default function Movimentacoes() {
       tipo: m.tipo,
       fornecedorClienteId: m.fornecedorClienteId ? String(m.fornecedorClienteId) : '',
       produtoId: m.produtoId ? String(m.produtoId) : '',
-      qtd: m.qtd != null ? String(m.qtd) : '',
-      preco: m.preco != null ? String(m.preco) : '',
+      qtd: m.qtd != null ? apiParaCampo(m.qtd) : '',
+      preco: m.preco != null ? apiParaCampo(m.preco) : '',
       valorDetalhado: m.valorDetalhado ?? '',
       nf: m.nf ?? '',
       motorista: m.motorista ?? '',
