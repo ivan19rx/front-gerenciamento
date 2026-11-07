@@ -42,6 +42,7 @@ export function useCrud<T extends { id: number }, F>({
   const [serverError, setServerError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   function openCreate() {
     setForm(emptyForm); setFormErrors({}); setServerError(null); setCreateOpen(true)
@@ -49,11 +50,11 @@ export function useCrud<T extends { id: number }, F>({
   function openEdit(item: T) {
     setForm(toForm(item)); setFormErrors({}); setServerError(null); setEditTarget(item)
   }
-  function openDelete(item: T) { setDeleteTarget(item) }
+  function openDelete(item: T) { setDeleteError(null); setDeleteTarget(item) }
 
   function closeCreate() { setCreateOpen(false) }
   function closeEdit() { setEditTarget(null) }
-  function closeDelete() { setDeleteTarget(null) }
+  function closeDelete() { setDeleteError(null); setDeleteTarget(null) }
 
   function isValid(): boolean {
     if (!validate) return true
@@ -106,12 +107,13 @@ export function useCrud<T extends { id: number }, F>({
 
   async function confirmDelete() {
     if (!deleteTarget) return
-    setDeleting(true)
+    setDeleting(true); setDeleteError(null)
     try {
       await request(`${endpoint}/${deleteTarget.id}`, 'DELETE')
       setDeleteTarget(null); refetch(); onMutate?.()
     } catch (e) {
-      console.error(e)
+      // mostra o motivo no diálogo (ex: "tem lançamentos vinculados")
+      setDeleteError(getErrorMessage(e))
     } finally {
       setDeleting(false)
     }
@@ -127,6 +129,6 @@ export function useCrud<T extends { id: number }, F>({
     // ações
     openCreate, openEdit, openDelete,
     closeCreate, closeEdit, closeDelete,
-    submitCreate, submitEdit, confirmDelete,
+    submitCreate, submitEdit, confirmDelete, deleteError,
   }
 }

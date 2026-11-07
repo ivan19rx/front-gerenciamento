@@ -7,7 +7,7 @@ import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../compon
 import { ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch, apiFetchJson } from '../auth/api'
-import { parseCentavos, centavosParaApi, apiParaCampo, DICA_VALOR } from '../utils/numero'
+import { parseCentavos, centavosParaApi, apiParaCampo, DICA_VALOR, somaReais } from '../utils/numero'
 import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/format'
 import { gerarRelatorioExtrato, montarResumoCaixaAnexo, type RelatorioLancamento } from '../utils/relatorioExtrato'
 import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula, type EspelhoSecao } from '../utils/relatorioEspelho'
@@ -131,8 +131,9 @@ function MesHeader({ label, lancamentos, aberto, onToggle }: {
   aberto: boolean
   onToggle: () => void
 }) {
-  const entradas = lancamentos.filter(l => l.tipo === 'ENTRADA').reduce((acc, l) => acc + parseFloat(l.valor), 0)
-  const saidas   = lancamentos.filter(l => l.tipo === 'SAIDA').reduce((acc, l) => acc + parseFloat(l.valor), 0)
+  // somas exatas (centavos): sem resíduo que vire "- R$ 0,00"
+  const entradas = somaReais(lancamentos.filter(l => l.tipo === 'ENTRADA'), l => l.valor)
+  const saidas   = somaReais(lancamentos.filter(l => l.tipo === 'SAIDA'), l => l.valor)
   const saldo    = entradas - saidas
 
   return (
@@ -555,8 +556,8 @@ export default function Lancamentos() {
     }
 
     const secoes: EspelhoSecao[] = grupos.map(g => {
-      const entradas = g.items.filter(l => l.tipo === 'ENTRADA').reduce((a, l) => a + parseFloat(l.valor), 0)
-      const saidas   = g.items.filter(l => l.tipo === 'SAIDA').reduce((a, l) => a + parseFloat(l.valor), 0)
+      const entradas = somaReais(g.items.filter(l => l.tipo === 'ENTRADA'), l => l.valor)
+      const saidas   = somaReais(g.items.filter(l => l.tipo === 'SAIDA'), l => l.valor)
       const saldo    = entradas - saidas
       return {
         titulo: g.label,

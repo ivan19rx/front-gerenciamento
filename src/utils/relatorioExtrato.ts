@@ -4,6 +4,7 @@
 // usuário salve como PDF — sem dependências externas.
 
 import { moeda, parseDataLocal } from './format'
+import { emCentavos, somaReais, percentuaisInteiros } from './numero'
 
 export interface RelatorioLancamento {
   dataLancamento: string
@@ -37,9 +38,7 @@ function esc(s: string): string {
   ))
 }
 
-function num(valor: string): number {
-  return parseFloat(valor) || 0
-}
+
 
 // Soma os valores agrupando por conta ou categoria, para um dado tipo.
 function agrupar(
@@ -48,14 +47,14 @@ function agrupar(
   campo: 'conta' | 'categoria',
 ): Grupo[] {
   const semRotulo = campo === 'conta' ? 'Sem conta' : 'Sem categoria'
-  const map = new Map<string, number>()
+  const map = new Map<string, number>() // centavos
   for (const l of lancs) {
     if (l.tipo !== tipo) continue
     const nome = l[campo]?.nome?.trim() || semRotulo
-    map.set(nome, (map.get(nome) ?? 0) + num(l.valor))
+    map.set(nome, (map.get(nome) ?? 0) + emCentavos(l.valor))
   }
   return [...map.entries()]
-    .map(([nome, total]) => ({ nome, total }))
+    .map(([nome, centavos]) => ({ nome, total: centavos / 100 }))
     .sort((a, b) => b.total - a.total)
 }
 
@@ -97,13 +96,12 @@ function metaLinha(ctx: RelatorioContexto): string {
 
 // ── Construtores de linhas ─────────────────────────────────────────────────────
 
-function linhasComPct(grupos: Grupo[], base: number): string {
+// Percentuais pelo maior resto: a coluna sempre fecha em 100%.
+function linhasComPct(grupos: Grupo[]): string {
   if (!grupos.length) return '<tr><td class="empty" colspan="3">—</td></tr>'
+  const pcts = percentuaisInteiros(grupos.map(g => g.total))
   return grupos
-    .map(g => {
-      const pct = base > 0 ? Math.round((g.total / base) * 100) : 0
-      return `<tr><td class="lbl">${esc(g.nome)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pct}%</td></tr>`
-    })
+    .map((g, i) => `<tr><td class="lbl">${esc(g.nome)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pcts[i]}%</td></tr>`)
     .join('')
 }
 
@@ -139,8 +137,8 @@ function construirResumo(lancamentos: RelatorioLancamento[]): { titulo: string; 
   const saidasCategoria = agrupar(lancamentos, 'SAIDA', 'categoria')
   const saidasConta = agrupar(lancamentos, 'SAIDA', 'conta')
 
-  const totalEntradas = lancamentos.reduce((s, l) => l.tipo === 'ENTRADA' ? s + num(l.valor) : s, 0)
-  const totalSaidas = lancamentos.reduce((s, l) => l.tipo === 'SAIDA' ? s + num(l.valor) : s, 0)
+  const totalEntradas = somaReais(lancamentos.filter(l => l.tipo === 'ENTRADA'), l => l.valor)
+  const totalSaidas = somaReais(lancamentos.filter(l => l.tipo === 'SAIDA'), l => l.valor)
   const saldo = totalEntradas - totalSaidas
   const positivo = saldo >= 0
 
@@ -152,21 +150,21 @@ function construirResumo(lancamentos: RelatorioLancamento[]): { titulo: string; 
         <table>
           <tr><td class="shead" colspan="3">Entradas por Categoria</td></tr>
           <tr class="colhdr"><td class="lbl">Categoria</td><td class="val">Total</td><td class="pct">%</td></tr>
-          ${linhasComPct(entradasCategoria, totalEntradas)}
+          ${linhasComPct(entradasCategoria)}
           <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalEntradas)}</td><td class="pct">${totalEntradas > 0 ? '100%' : '0%'}</td></tr>
         </table>
 
         <table>
           <tr><td class="shead" colspan="3">Entradas por Conta</td></tr>
           <tr class="colhdr"><td class="lbl">Conta</td><td class="val">Total</td><td class="pct">%</td></tr>
-          ${linhasComPct(entradasConta, totalEntradas)}
+          ${linhasComPct(entradasConta)}
           <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalEntradas)}</td><td class="pct">${totalEntradas > 0 ? '100%' : '0%'}</td></tr>
         </table>
 
         <table>
           <tr><td class="shead" colspan="3">Saídas por Conta</td></tr>
           <tr class="colhdr"><td class="lbl">Conta</td><td class="val">Total</td><td class="pct">%</td></tr>
-          ${linhasComPct(saidasConta, totalSaidas)}
+          ${linhasComPct(saidasConta)}
           <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalSaidas)}</td><td class="pct">${totalSaidas > 0 ? '100%' : '0%'}</td></tr>
         </table>
 
@@ -190,7 +188,7 @@ function construirResumo(lancamentos: RelatorioLancamento[]): { titulo: string; 
         <table>
           <tr><td class="shead" colspan="3">Saídas por Categoria</td></tr>
           <tr class="colhdr"><td class="lbl">Categoria</td><td class="val">TOTAL</td><td class="pct">%</td></tr>
-          ${linhasComPct(saidasCategoria, totalSaidas)}
+          ${linhasComPct(saidasCategoria)}
           <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(totalSaidas)}</td><td class="pct">${totalSaidas > 0 ? '100%' : '0%'}</td></tr>
         </table>
       </div>

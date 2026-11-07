@@ -149,6 +149,7 @@ export default function TipoDeConta() {
         onConfirm={crud.confirmDelete}
         onCancel={crud.closeDelete}
         loading={crud.deleting}
+        error={crud.deleteError}
       />
     </>
   )

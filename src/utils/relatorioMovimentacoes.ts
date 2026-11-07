@@ -3,6 +3,7 @@
 //   ENTRADA → só entradas (compras)   SAIDA → só saídas (vendas)   GERAL → ambos.
 
 import { moeda, parseDataLocal } from './format'
+import { emCentavos, somaReais, percentuaisInteiros } from './numero'
 import { UNIDADE_LABEL, type UnidadeMedida } from './unidades'
 
 export interface RelatorioMovimento {
@@ -40,18 +41,21 @@ function esc(s: string): string {
   ))
 }
 
+// Somas em centavos (total e quantidade têm 2 casas) e convertidas no fim.
 function agruparPorProduto(movs: RelatorioMovimento[], tipo: 'ENTRADA' | 'SAIDA'): GrupoProduto[] {
   const map = new Map<string, GrupoProduto>()
   for (const m of movs) {
     if (m.tipo !== tipo) continue
     const nome = m.produtoNome || '—'
     const g = map.get(nome) ?? { nome, total: 0, qtd: 0, unidade: m.unidade }
-    g.total += m.total
-    g.qtd += m.qtd ?? 0
+    g.total += emCentavos(m.total)
+    g.qtd += emCentavos(m.qtd)
     if (!g.unidade) g.unidade = m.unidade
     map.set(nome, g)
   }
-  return [...map.values()].sort((a, b) => b.total - a.total)
+  return [...map.values()]
+    .map(g => ({ ...g, total: g.total / 100, qtd: g.qtd / 100 }))
+    .sort((a, b) => b.total - a.total)
 }
 
 function agruparPorCliente(movs: RelatorioMovimento[], tipo: 'ENTRADA' | 'SAIDA'): Grupo[] {
@@ -59,10 +63,10 @@ function agruparPorCliente(movs: RelatorioMovimento[], tipo: 'ENTRADA' | 'SAIDA'
   for (const m of movs) {
     if (m.tipo !== tipo) continue
     const nome = m.clienteNome || '—'
-    map.set(nome, (map.get(nome) ?? 0) + m.total)
+    map.set(nome, (map.get(nome) ?? 0) + emCentavos(m.total))
   }
   return [...map.entries()]
-    .map(([nome, total]) => ({ nome, total }))
+    .map(([nome, centavos]) => ({ nome, total: centavos / 100 }))
     .sort((a, b) => b.total - a.total)
 }
 
@@ -103,21 +107,20 @@ function qtdTexto(qtd: number, unidade: UnidadeMedida | null): string {
   return `${brNum(qtd)}${unidade ? ' ' + UNIDADE_LABEL[unidade] : ''}`
 }
 
-function pctTexto(total: number, base: number): string {
-  return `${base > 0 ? Math.round((total / base) * 100) : 0}%`
-}
-
-function linhasProduto(grupos: GrupoProduto[], base: number): string {
+// Percentuais pelo maior resto: a coluna sempre fecha em 100%.
+function linhasProduto(grupos: GrupoProduto[]): string {
   if (!grupos.length) return '<tr><td class="empty" colspan="4">—</td></tr>'
+  const pcts = percentuaisInteiros(grupos.map(g => g.total))
   return grupos
-    .map(g => `<tr><td class="lbl">${esc(g.nome)}</td><td class="qtd">${qtdTexto(g.qtd, g.unidade)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pctTexto(g.total, base)}</td></tr>`)
+    .map((g, i) => `<tr><td class="lbl">${esc(g.nome)}</td><td class="qtd">${qtdTexto(g.qtd, g.unidade)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pcts[i]}%</td></tr>`)
     .join('')
 }
 
-function linhasCliente(grupos: Grupo[], base: number): string {
+function linhasCliente(grupos: Grupo[]): string {
   if (!grupos.length) return '<tr><td class="empty" colspan="3">—</td></tr>'
+  const pcts = percentuaisInteiros(grupos.map(g => g.total))
   return grupos
-    .map(g => `<tr><td class="lbl">${esc(g.nome)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pctTexto(g.total, base)}</td></tr>`)
+    .map((g, i) => `<tr><td class="lbl">${esc(g.nome)}</td><td class="val">${moeda(g.total)}</td><td class="pct">${pcts[i]}%</td></tr>`)
     .join('')
 }
 
@@ -125,7 +128,7 @@ function tabelaProduto(titulo: string, cls: string, grupos: GrupoProduto[], tota
   return `<table>
     <tr><td class="shead ${cls}" colspan="4">${esc(titulo)}</td></tr>
     <tr class="colhdr"><td class="lbl">Produto</td><td class="qtd">Qtd</td><td class="val">Total</td><td class="pct">%</td></tr>
-    ${linhasProduto(grupos, total)}
+    ${linhasProduto(grupos)}
     <tr class="total"><td class="lbl" colspan="2">TOTAL</td><td class="val">${moeda(total)}</td><td class="pct">${total > 0 ? '100%' : '0%'}</td></tr>
   </table>`
 }
@@ -134,7 +137,7 @@ function tabelaCliente(titulo: string, cls: string, grupos: Grupo[], total: numb
   return `<table>
     <tr><td class="shead ${cls}" colspan="3">${esc(titulo)}</td></tr>
     <tr class="colhdr"><td class="lbl">Cliente/Fornecedor</td><td class="val">Total</td><td class="pct">%</td></tr>
-    ${linhasCliente(grupos, total)}
+    ${linhasCliente(grupos)}
     <tr class="total"><td class="lbl">TOTAL</td><td class="val">${moeda(total)}</td><td class="pct">${total > 0 ? '100%' : '0%'}</td></tr>
   </table>`
 }
@@ -175,8 +178,8 @@ function construirMov(movimentos: RelatorioMovimento[], escopo: RelatorioMovCont
   const saidasProduto = agruparPorProduto(movimentos, 'SAIDA')
   const saidasCliente = agruparPorCliente(movimentos, 'SAIDA')
 
-  const totalEntradas = movimentos.reduce((s, m) => m.tipo === 'ENTRADA' ? s + m.total : s, 0)
-  const totalSaidas = movimentos.reduce((s, m) => m.tipo === 'SAIDA' ? s + m.total : s, 0)
+  const totalEntradas = somaReais(movimentos.filter(m => m.tipo === 'ENTRADA'), m => m.total)
+  const totalSaidas = somaReais(movimentos.filter(m => m.tipo === 'SAIDA'), m => m.total)
   const resultado = totalSaidas - totalEntradas
   const positivo = resultado >= 0
 

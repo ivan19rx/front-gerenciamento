@@ -7,6 +7,7 @@ import { TipoCell, ValorCell } from '../components/cells'
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch } from '../auth/api'
 import { formatDate, moeda } from '../utils/format'
+import { emCentavos } from '../utils/numero'
 import { gerarRelatorioExtrato, montarResumoCaixaAnexo } from '../utils/relatorioExtrato'
 import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula } from '../utils/relatorioEspelho'
 import { RelatorioModal, type OpcaoRelatorio } from '../components/RelatorioModal'
@@ -57,9 +58,16 @@ interface LancamentoItem {
   fornecedorCliente: { id: number; nome: string; saldo: string } | null
 }
 
+// Resposta de GET /lancamentos/filtros.
 interface ExtratoResponse {
-  fornecedorCliente?: { id: number; nome: string; saldo: string }
-  filtro: string
+  filtros: {
+    clienteId: number | null
+    contaId: number | null
+    categoriaId: number | null
+    tipo: string
+    dataInicio: string | null
+    dataFim: string | null
+  }
   resumo: {
     totalRegistros: number
     totalEntradas: number
@@ -108,20 +116,22 @@ function buildUrl(filtros: Filtros): string {
 }
 
 // Calcula o resumo a partir das linhas realmente exibidas, mantendo os cards
-// sempre coerentes com a tabela (inclusive após a busca rápida).
+// sempre coerentes com a tabela (inclusive após a busca rápida, que filtra só
+// no navegador — por isso não usamos o resumo do backend, que ignora a busca).
+// Soma em centavos: o resultado é exato e igual ao do backend sem busca.
 function calcResumo(lancamentos: LancamentoItem[]) {
-  let totalEntradas = 0
-  let totalSaidas = 0
+  let entradas = 0
+  let saidas = 0
   for (const l of lancamentos) {
-    const v = parseFloat(l.valor) || 0
-    if (l.tipo === 'ENTRADA') totalEntradas += v
-    else totalSaidas += v
+    const c = emCentavos(l.valor)
+    if (l.tipo === 'ENTRADA') entradas += c
+    else saidas += c
   }
   return {
     totalRegistros: lancamentos.length,
-    totalEntradas,
-    totalSaidas,
-    saldoCalculado: totalEntradas - totalSaidas,
+    totalEntradas: entradas / 100,
+    totalSaidas: saidas / 100,
+    saldoCalculado: (entradas - saidas) / 100,
   }
 }
 
@@ -154,8 +164,8 @@ function exportarCSV(lancamentos: LancamentoItem[]) {
 
 // ── Componentes visuais ──────────────────────────────────────────────────────
 
-function ResumoCards({ resumo, saldo }: { resumo: ExtratoResponse['resumo']; saldo?: string }) {
-  const saldoNum = saldo != null ? parseFloat(saldo) : resumo.saldoCalculado
+function ResumoCards({ resumo }: { resumo: ExtratoResponse['resumo'] }) {
+  const saldoNum = resumo.saldoCalculado
   const cards = [
     { label: 'Registros', value: String(resumo.totalRegistros), color: '#1A2E25' },
     { label: 'Total Entradas', value: moeda(resumo.totalEntradas), color: '#16a34a' },
@@ -430,9 +440,7 @@ export default function ExtratoCliente() {
       return
     }
 
-    const saldoNum = extrato?.fornecedorCliente?.saldo != null
-      ? parseFloat(extrato.fornecedorCliente.saldo)
-      : resumoExibido.saldoCalculado
+    const saldoNum = resumoExibido.saldoCalculado
     gerarRelatorioEspelho({
       titulo: 'Extrato',
       subtitulo: 'Filtre lançamentos por cliente, conta, categoria e tipo',
@@ -515,7 +523,7 @@ export default function ExtratoCliente() {
 
       {!loading && !error && extrato && (
         <>
-          <ResumoCards resumo={resumoExibido} saldo={extrato.fornecedorCliente?.saldo} />
+          <ResumoCards resumo={resumoExibido} />
 
           {/* Busca rápida + exportação */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>

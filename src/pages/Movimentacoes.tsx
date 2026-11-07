@@ -7,7 +7,7 @@ import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../compon
 import { useFetch } from '../hooks/useFetch'
 import { apiFetch } from '../auth/api'
 import { formatDate, moeda, getErrorMessage } from '../utils/format'
-import { parseCentavos, centavosParaApi, apiParaCampo, multiplicarCentavos, MAX_CENTAVOS, DICA_VALOR } from '../utils/numero'
+import { parseCentavos, centavosParaApi, apiParaCampo, multiplicarCentavos, MAX_CENTAVOS, DICA_VALOR, emCentavos } from '../utils/numero'
 import { UNIDADE_LABEL, type UnidadeMedida } from '../utils/unidades'
 import { montarResumoMovimentacoesAnexo, type RelatorioMovimento } from '../utils/relatorioMovimentacoes'
 import { gerarRelatorioEspelho, type EspelhoCelula, type EspelhoCard } from '../utils/relatorioEspelho'
@@ -491,10 +491,10 @@ export default function Movimentacoes() {
   const linhasAba = useMemo<MovimentoView[]>(() => {
     const doTipo = movimentos.filter(m => aba === 'TODOS' || m.tipo === aba)
     const balancoPorId = new Map<number, number>()
-    let acc = 0
+    let acc = 0 // centavos
     for (const m of [...doTipo].sort(ordemCronologica)) {
-      acc += m.total
-      balancoPorId.set(m.id, acc)
+      acc += emCentavos(m.total)
+      balancoPorId.set(m.id, acc / 100)
     }
     return [...doTipo]
       .sort((a, b) => -ordemCronologica(a, b))
@@ -524,20 +524,25 @@ export default function Movimentacoes() {
   // Resumo (totais da aba já filtrada, independente da busca). A quantidade é
   // somada por unidade, pois produtos podem ter unidades diferentes.
   const resumo = useMemo(() => {
+    // tudo em centavos (valores e quantidades têm 2 casas) → soma exata
     let valor = 0, totalEnt = 0, totalSai = 0
     const porUnidade = new Map<UnidadeMedida, number>()
     for (const m of linhasFiltradas) {
-      valor += m.total
-      if (m.tipo === 'ENTRADA') totalEnt += m.total
-      else totalSai += m.total
+      const c = emCentavos(m.total)
+      valor += c
+      if (m.tipo === 'ENTRADA') totalEnt += c
+      else totalSai += c
       if (m.qtd != null && m.unidade) {
-        porUnidade.set(m.unidade, (porUnidade.get(m.unidade) ?? 0) + m.qtd)
+        porUnidade.set(m.unidade, (porUnidade.get(m.unidade) ?? 0) + emCentavos(m.qtd))
       }
     }
     const qtdLabel = [...porUnidade.entries()]
-      .map(([u, q]) => `${brNum(q)} ${UNIDADE_LABEL[u]}`)
+      .map(([u, q]) => `${brNum(q / 100)} ${UNIDADE_LABEL[u]}`)
       .join(' · ') || '—'
-    return { registros: linhasFiltradas.length, qtdLabel, valor, totalEnt, totalSai }
+    return {
+      registros: linhasFiltradas.length, qtdLabel,
+      valor: valor / 100, totalEnt: totalEnt / 100, totalSai: totalSai / 100,
+    }
   }, [linhasFiltradas])
 
   // Gera o relatório PDF a partir do que está sendo exibido (`linhas`, já com

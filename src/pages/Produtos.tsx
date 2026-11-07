@@ -171,6 +171,7 @@ export default function Produtos() {
         onConfirm={crud.confirmDelete}
         onCancel={crud.closeDelete}
         loading={crud.deleting}
+        error={crud.deleteError}
       />
     </>
   )

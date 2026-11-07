@@ -164,6 +164,7 @@ export default function Categorias() {
         onConfirm={crud.confirmDelete}
         onCancel={crud.closeDelete}
         loading={crud.deleting}
+        error={crud.deleteError}
       />
     </>
   )

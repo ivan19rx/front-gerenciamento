@@ -6,7 +6,7 @@ import { Modal, ConfirmDialog, Field, Input, Select, FormError } from '../compon
 import { useCrud } from '../hooks/useCrud'
 import { useFetch } from '../hooks/useFetch'
 import { formatDateLong, moeda } from '../utils/format'
-import { parseCentavos, centavosParaApi, apiParaCampo, DICA_VALOR } from '../utils/numero'
+import { parseCentavos, centavosParaApi, apiParaCampo, DICA_VALOR, emCentavos } from '../utils/numero'
 import { C } from '../theme'
 
 
@@ -73,9 +73,9 @@ function mapToRow(item: FornecedorCliente): ClienteRow {
 }
 
 function SaldoCell({ valor }: { valor: string }) {
-  const num = parseFloat(valor)
+  const num = emCentavos(valor) / 100
   const color = num > 0 ? '#16a34a' : num < 0 ? '#dc2626' : '#557063'
-  return <span style={{ fontWeight: 600, color }}>{num > 0 ? '+' : ''}R$ {num.toFixed(2)}</span>
+  return <span style={{ fontWeight: 600, color, whiteSpace: 'nowrap' }}>{num > 0 ? '+' : ''}{moeda(num)}</span>
 }
 
 interface ResumoSaldosResponse {
@@ -278,6 +278,7 @@ export default function Clientes() {
         onConfirm={crud.confirmDelete}
         onCancel={crud.closeDelete}
         loading={crud.deleting}
+        error={crud.deleteError}
       />
     </>
   )

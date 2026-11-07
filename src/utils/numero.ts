@@ -66,3 +66,41 @@ export function apiParaCampo(valor: string | number | null | undefined): string 
 export function multiplicarCentavos(qtdCentavos: number, precoCentavos: number): number {
   return Number((BigInt(qtdCentavos) * BigInt(precoCentavos) + 50n) / 100n)
 }
+
+// ── Somas exatas ────────────────────────────────────────────────────────────
+// Somar valores com casas decimais em ponto flutuante deixa resíduos
+// (0,30 − (0,10 + 0,20) = −0,0000000000000000555), que aparecem como
+// "- R$ 0,00" em vermelho. Somando em centavos inteiros o resultado é exato.
+
+// Valor da API (string decimal, ex: "123.45") ou número → centavos inteiros.
+export function emCentavos(v: string | number | null | undefined): number {
+  if (v === null || v === undefined || v === '') return 0
+  if (typeof v === 'number') return Number.isFinite(v) ? Math.round(v * 100) : 0
+  return parseCentavos(v, { permitirNegativo: true }) ?? Math.round((parseFloat(v) || 0) * 100)
+}
+
+// Soma exata de uma lista, devolvida em reais (ex: 1234.56).
+export function somaReais<T>(itens: readonly T[], valor: (item: T) => string | number | null | undefined): number {
+  let centavos = 0
+  for (const item of itens) centavos += emCentavos(valor(item))
+  return centavos / 100
+}
+
+// Percentuais inteiros que somam exatamente 100 (método do maior resto).
+// Arredondar cada um isoladamente pode dar 99% ou 101% no total.
+export function percentuaisInteiros(valores: readonly number[]): number[] {
+  const total = valores.reduce((a, v) => a + v, 0)
+  if (total <= 0) return valores.map(() => 0)
+  const brutos = valores.map(v => (v / total) * 100)
+  const base = brutos.map(Math.floor)
+  let faltam = 100 - base.reduce((a, v) => a + v, 0)
+  const ordem = brutos
+    .map((b, i) => ({ i, resto: b - Math.floor(b) }))
+    .sort((a, b) => b.resto - a.resto)
+  for (const { i } of ordem) {
+    if (faltam <= 0) break
+    base[i]++
+    faltam--
+  }
+  return base
+}

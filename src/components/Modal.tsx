@@ -150,12 +150,19 @@ interface ConfirmDialogProps {
   onConfirm: () => void
   onCancel: () => void
   loading?: boolean
+  // Mensagem de erro da ação (ex: exclusão recusada pela API).
+  error?: string | null
 }
 
-export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirmar', onConfirm, onCancel, loading }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirmar', onConfirm, onCancel, loading, error }: ConfirmDialogProps) {
   return (
     <Modal open={open} title={title} onClose={onCancel} width={400}>
       <p style={{ margin: '0 0 24px', fontSize: 14, color: '#4B7A6A', lineHeight: 1.6 }}>{message}</p>
+      {error && (
+        <p role="alert" style={{ margin: '-12px 0 20px', padding: '10px 12px', borderRadius: 8, fontSize: 13, lineHeight: 1.5, color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FECACA' }}>
+          {error}
+        </p>
+      )}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} disabled={loading} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#fff', color: '#4B7A6A', fontSize: 14, cursor: 'pointer', fontWeight: 500 }}>
           Cancelar
