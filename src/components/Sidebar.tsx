@@ -284,14 +284,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             display: 'block',
           }}
         />
+        {/* Só em tablet/celular (< 1024px, mesmo limite do fundo escuro do
+            Layout). No computador a barra lateral fica sempre aberta.
+            O display vem das classes (flex / lg:hidden): um display inline
+            venceria o lg:hidden. */}
         <button
           onClick={onClose}
+          aria-label="Fechar menu"
+          className="flex lg:hidden"
           style={{
             position: 'absolute', top: 10, right: 10,
             background: 'rgba(0,0,0,0.3)', border: 'none',
             cursor: 'pointer', color: '#EDE8D8',
             padding: 6, borderRadius: 6,
-            display: 'flex', alignItems: 'center',
+            alignItems: 'center',
           }}
         >
           <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
