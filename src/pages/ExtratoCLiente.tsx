@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useId } from 'react'
 import { DataTable } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
@@ -11,6 +11,7 @@ import { emCentavos } from '../utils/numero'
 import { gerarRelatorioExtrato, montarResumoCaixaAnexo } from '../utils/relatorioExtrato'
 import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula } from '../utils/relatorioEspelho'
 import { RelatorioModal, type OpcaoRelatorio } from '../components/RelatorioModal'
+import { DatePicker } from '../components/DatePicker'
 import { C } from '../theme'
 
 // Escapa texto para interpolar com segurança na linha de filtros (que aceita HTML).
@@ -239,16 +240,19 @@ function DateFiltro({ label, value, onChange, min, max }: {
   min?: string
   max?: string
 }) {
+  const id = useId()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 160 }}>
-      <label style={labelStyle}>{label}</label>
-      <input
-        type="date"
+      <label htmlFor={id} style={labelStyle}>{label}</label>
+      <DatePicker
+        id={id}
+        variante="filtro"
         value={value}
         min={min}
         max={max}
-        onChange={e => onChange(e.target.value)}
-        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25', background: '#F9FAFB', cursor: 'pointer', outline: 'none' }}
+        // destaca o período escolhido (de → até) no calendário
+        intervalo={[min ?? value, max ?? value]}
+        onChange={onChange}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useId } from 'react'
 import { DataTable, ActionMenu } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { PageWrapper } from '../components/PageWrapper'
@@ -12,6 +12,7 @@ import { parseDataLocal, formatDate, moeda, getErrorMessage } from '../utils/for
 import { gerarRelatorioExtrato, montarResumoCaixaAnexo, type RelatorioLancamento } from '../utils/relatorioExtrato'
 import { gerarRelatorioEspelho, type EspelhoColuna, type EspelhoCelula, type EspelhoSecao } from '../utils/relatorioEspelho'
 import { RelatorioModal, type OpcaoRelatorio } from '../components/RelatorioModal'
+import { DatePicker } from '../components/DatePicker'
 import { C } from '../theme'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -212,8 +213,8 @@ function LancamentoForm({ form, errors, serverError, submitting, onChange, onSub
           </Select>
         </Field>
         <Field label="Data" error={errors.dataLancamento}>
-          <Input type="date" value={form.dataLancamento} error={!!errors.dataLancamento}
-            onChange={e => onChange({ ...form, dataLancamento: (e.target as HTMLInputElement).value })} />
+          <DatePicker aria-label="Data" value={form.dataLancamento} error={!!errors.dataLancamento}
+            onChange={v => onChange({ ...form, dataLancamento: v })} />
         </Field>
       </div>
       <div style={row2}>
@@ -385,16 +386,19 @@ function DateFiltro({ label, value, onChange, min, max }: {
   min?: string
   max?: string
 }) {
+  const id = useId()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 160 }}>
-      <label style={labelStyle}>{label}</label>
-      <input
-        type="date"
+      <label htmlFor={id} style={labelStyle}>{label}</label>
+      <DatePicker
+        id={id}
+        variante="filtro"
         value={value}
         min={min}
         max={max}
-        onChange={e => onChange(e.target.value)}
-        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E2EBE7', fontSize: 14, color: '#1A2E25', background: '#F9FAFB', cursor: 'pointer', outline: 'none' }}
+        // destaca o período escolhido (de → até) no calendário
+        intervalo={[min ?? value, max ?? value]}
+        onChange={onChange}
       />
     </div>
   )

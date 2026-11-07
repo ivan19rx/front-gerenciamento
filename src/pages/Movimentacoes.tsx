@@ -11,6 +11,7 @@ import { parseCentavos, centavosParaApi, apiParaCampo, multiplicarCentavos, MAX_
 import { UNIDADE_LABEL, type UnidadeMedida } from '../utils/unidades'
 import { montarResumoMovimentacoesAnexo, type RelatorioMovimento } from '../utils/relatorioMovimentacoes'
 import { gerarRelatorioEspelho, type EspelhoCelula, type EspelhoCard } from '../utils/relatorioEspelho'
+import { DatePicker } from '../components/DatePicker'
 import { C } from '../theme'
 
 // Escapa texto para interpolar com segurança na linha de filtros (que aceita HTML).
@@ -358,8 +359,8 @@ function MovimentoForm({ form, errors, clientes, produtos, transportadoras, serv
           </Select>
         </Field>
         <Field label="Data" error={errors.data}>
-          <Input type="date" value={form.data} error={!!errors.data}
-            onChange={e => onChange({ ...form, data: (e.target as HTMLInputElement).value })} />
+          <DatePicker aria-label="Data" value={form.data} error={!!errors.data}
+            onChange={v => onChange({ ...form, data: v })} />
         </Field>
       </div>
 
