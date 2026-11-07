@@ -39,14 +39,14 @@ export class ErrorBoundary extends Component<Props, State> {
           <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1A2E25', margin: '0 0 8px' }}>
             Algo deu errado
           </h1>
-          <p style={{ fontSize: 14, color: '#6B8C7D', margin: '0 0 20px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: 14, color: '#557063', margin: '0 0 20px', lineHeight: 1.5 }}>
             Ocorreu um erro inesperado nesta página. Você pode tentar recarregar.
           </p>
           <button
             onClick={this.handleReload}
             style={{
               padding: '10px 22px', borderRadius: 8, border: 'none',
-              background: C.activeItem, color: C.activeIcon,
+              background: C.activeItem, color: C.navText,
               fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}
           >

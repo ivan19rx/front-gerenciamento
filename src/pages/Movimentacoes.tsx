@@ -221,7 +221,7 @@ function AddButton({ aba, onClick }: { aba: AbaMov; onClick: () => void }) {
   const label = aba === 'ENTRADA' ? 'Nova Entrada' : aba === 'SAIDA' ? 'Nova Saída' : 'Nova Movimentação'
   return (
     <button onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.navText, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
       onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
     >
@@ -297,7 +297,7 @@ function RelatorioButton({ onClick, disabled, label, title, variant = 'solid' }:
         padding: '9px 16px', borderRadius: 8,
         border: solid ? 'none' : '1px solid #E2EBE7',
         background: solid ? (disabled ? '#E2EBE7' : C.activeItem) : '#fff',
-        color: disabled ? '#9DB8AD' : solid ? C.activeIcon : '#4B7A6A',
+        color: disabled ? '#9DB8AD' : solid ? C.navText : '#4B7A6A',
         fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', alignSelf: 'flex-end',
       }}
     >
@@ -378,7 +378,7 @@ function MovimentoForm({ form, errors, clientes, produtos, transportadoras, serv
 
       <div style={row2}>
         <Field label="Total (calculado)">
-          <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#F9FAFB', fontSize: 14, fontWeight: 700, color: !isNaN(totalCalc) ? '#1A2E25' : '#9DB8AD' }}>
+          <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#F9FAFB', fontSize: 14, fontWeight: 700, color: !isNaN(totalCalc) ? '#1A2E25' : '#557063' }}>
             {!isNaN(totalCalc) ? moeda(totalCalc) : 'Qtd × Preço'}
           </div>
         </Field>
@@ -428,7 +428,7 @@ function MovimentoForm({ form, errors, clientes, produtos, transportadoras, serv
           Cancelar
         </button>
         <button onClick={onSubmit} disabled={submitting}
-          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: submitting ? 0.7 : 1 }}>
+          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.navText, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: submitting ? 0.7 : 1 }}>
           {submitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Cadastrar'}
         </button>
       </div>
@@ -563,14 +563,14 @@ export default function Movimentacoes() {
 
     // Descritores de coluna (rótulo + alinhamento + célula) por aba.
     type ColDef = { label: string; align?: 'left' | 'right' | 'center'; cell: (r: MovimentoView) => EspelhoCelula }
-    const muted = (texto: string): EspelhoCelula => ({ texto, cor: '#6B8C7D' })
+    const muted = (texto: string): EspelhoCelula => ({ texto, cor: '#557063' })
     const qtdTxt = (r: MovimentoView) => r.qtd != null ? `${brNum(r.qtd)}${r.unidade ? ' ' + UNIDADE_LABEL[r.unidade] : ''}` : '—'
 
     const colData: ColDef = { label: 'Data', cell: r => muted(formatDate(r.data)) }
     const colCliente: ColDef = { label: 'Cliente/Forn.', cell: r => ({ texto: r.fornecedorClienteNome }) }
     const colProduto: ColDef = { label: 'Produto', cell: r => ({ texto: r.produtoNome }) }
-    const colQtd: ColDef = { label: 'Quantidade', align: 'right', cell: r => ({ texto: qtdTxt(r), cor: '#6B8C7D', nowrap: true }) }
-    const colPreco: ColDef = { label: 'Preço', align: 'right', cell: r => ({ texto: r.preco != null ? moeda(r.preco) : '—', cor: '#6B8C7D', nowrap: true }) }
+    const colQtd: ColDef = { label: 'Quantidade', align: 'right', cell: r => ({ texto: qtdTxt(r), cor: '#557063', nowrap: true }) }
+    const colPreco: ColDef = { label: 'Preço', align: 'right', cell: r => ({ texto: r.preco != null ? moeda(r.preco) : '—', cor: '#557063', nowrap: true }) }
     const colTotal: ColDef = { label: 'Total', align: 'right', cell: r => ({ texto: `${r.tipo === 'ENTRADA' ? '− ' : '+ '}${moeda(r.total)}`, cor: COR[r.tipo], negrito: true, nowrap: true }) }
     const colDescricao: ColDef = { label: 'Descrição', cell: r => muted(r.descricao ?? '—') }
 
@@ -591,9 +591,9 @@ export default function Movimentacoes() {
     } else {
       defs = [
         colData, colCliente, colProduto, colQtd, colPreco, colTotal,
-        { label: 'NF', cell: r => ({ texto: r.nf ?? '—', cor: '#6B8C7D', nowrap: true }) },
+        { label: 'NF', cell: r => ({ texto: r.nf ?? '—', cor: '#557063', nowrap: true }) },
         { label: 'Motorista', cell: r => muted(r.motorista ?? '—') },
-        { label: 'Veículo', cell: r => ({ texto: r.veiculo ?? '—', cor: '#6B8C7D', nowrap: true }) },
+        { label: 'Veículo', cell: r => ({ texto: r.veiculo ?? '—', cor: '#557063', nowrap: true }) },
         { label: 'Transportadora', cell: r => muted(r.transportadora ?? '—') },
         colDescricao,
       ]

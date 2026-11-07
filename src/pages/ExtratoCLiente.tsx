@@ -28,14 +28,14 @@ function linhasEspelho(lancamentos: LancamentoItem[]): EspelhoCelula[][] {
     const ent = l.tipo === 'ENTRADA'
     const num = Math.abs(parseFloat(l.valor) || 0)
     return [
-      { texto: formatDate(l.dataLancamento), cor: '#6B8C7D' },
+      { texto: formatDate(l.dataLancamento), cor: '#557063' },
       { texto: ent ? '▲ Entrada' : '▼ Saída', badge: ent ? 'entrada' : 'saida' },
       { texto: `${ent ? '+ ' : '- '}${moeda(num)}`, cor: ent ? '#16a34a' : '#dc2626', negrito: true, nowrap: true },
-      { texto: l.fornecedorCliente?.nome ?? '—', cor: '#6B8C7D' },
-      { texto: l.conta?.nome ?? '—', cor: '#6B8C7D' },
-      { texto: l.categoria?.nome ?? '—', cor: '#6B8C7D' },
-      { texto: l.classificacao || '—', cor: '#6B8C7D' },
-      { texto: l.observacao || '—', cor: '#6B8C7D' },
+      { texto: l.fornecedorCliente?.nome ?? '—', cor: '#557063' },
+      { texto: l.conta?.nome ?? '—', cor: '#557063' },
+      { texto: l.categoria?.nome ?? '—', cor: '#557063' },
+      { texto: l.classificacao || '—', cor: '#557063' },
+      { texto: l.observacao || '—', cor: '#557063' },
     ]
   })
 }
@@ -90,7 +90,7 @@ const FILTROS_INICIAIS: Filtros = {
 // ── Estilos compartilhados ────────────────────────────────────────────────────
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12, fontWeight: 600, color: '#6B8C7D',
+  fontSize: 12, fontWeight: 600, color: '#557063',
   textTransform: 'uppercase', letterSpacing: '0.04em',
 }
 
@@ -189,7 +189,7 @@ function FiltroTabs({ value, onChange }: { value: FiltroTipo; onChange: (v: Filt
             padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
             border: `1px solid ${active ? C.activeIcon : '#E2EBE7'}`,
             background: active ? C.activeItem : '#fff',
-            color: active ? C.activeIcon : '#6B8C7D',
+            color: active ? C.activeIcon : '#557063',
             transition: 'all 0.15s',
           }}>
             {tab.label}
@@ -303,7 +303,7 @@ function RelatorioButton({ onClick, disabled, label, title, variant = 'solid' }:
         padding: '9px 16px', borderRadius: 8,
         border: solid ? 'none' : '1px solid #E2EBE7',
         background: solid ? (disabled ? '#E2EBE7' : C.activeItem) : '#fff',
-        color: disabled ? '#9DB8AD' : solid ? C.activeIcon : '#4B7A6A',
+        color: disabled ? '#9DB8AD' : solid ? C.navText : '#4B7A6A',
         fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
       }}
     >
@@ -490,13 +490,13 @@ export default function ExtratoCliente() {
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={limpar} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#fff', color: '#6B8C7D', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+            <button onClick={limpar} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E2EBE7', background: '#fff', color: '#557063', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Limpar
             </button>
             <button
               onClick={() => buscar()}
               disabled={loading}
-              style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.15s' }}
+              style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.navText, fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.15s' }}
             >
               {loading ? 'Buscando...' : 'Buscar'}
             </button>

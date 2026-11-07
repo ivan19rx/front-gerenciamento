@@ -79,7 +79,7 @@ export default function NotFound() {
               borderRadius: 10,
               border: 'none',
               background: C.activeItem,
-              color: C.activeIcon,
+              color: C.navText,
               fontSize: 14,
               fontWeight: 700,
               cursor: 'pointer',

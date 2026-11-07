@@ -110,10 +110,10 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
           >
             {({ isActive }) => (
               <>
-                <svg fill="none" stroke={isActive ? C.activeIcon : C.mutedIcon} strokeWidth="1.8" viewBox="0 0 24 24" style={{ width: 20, height: 20, flexShrink: 0 }}>
+                <svg fill="none" stroke={isActive ? C.activeIcon : C.navIcon} strokeWidth="1.8" viewBox="0 0 24 24" style={{ width: 20, height: 20, flexShrink: 0 }}>
                   {item.icon}
                 </svg>
-                <span style={{ fontSize: 14, fontWeight: 500, color: isActive ? C.activeText : C.mutedText }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: isActive ? C.navTextActive : C.navText }}>
                   {item.label}
                 </span>
               </>

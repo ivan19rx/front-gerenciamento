@@ -158,8 +158,8 @@ function NavLeaf({ item, depth }: { item: NavItem; depth: number }) {
     >
       {({ isActive }) => (
         <>
-          <Icon d={item.icon} color={isActive ? C.activeIcon : C.mutedIcon} />
-          <span style={{ fontSize: child ? 13 : 14, fontWeight: 500, color: isActive ? C.activeText : C.mutedText }}>
+          <Icon d={item.icon} color={isActive ? C.activeIcon : C.navIcon} />
+          <span style={{ fontSize: child ? 13 : 14, fontWeight: 500, color: isActive ? C.navTextActive : C.navText }}>
             {item.label}
           </span>
         </>
@@ -198,15 +198,15 @@ function NavGroupBlock({ group, depth }: { group: NavGroup; depth: number }) {
         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = temFilhoAtivo && !aberto ? C.activeItem : 'transparent'}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: child ? 10 : 12 }}>
-          <Icon d={group.icon} color={temFilhoAtivo ? C.activeIcon : C.mutedIcon} />
-          <span style={{ fontSize: child ? 13 : 14, fontWeight: 500, color: temFilhoAtivo ? C.activeText : C.mutedText }}>
+          <Icon d={group.icon} color={temFilhoAtivo ? C.activeIcon : C.navIcon} />
+          <span style={{ fontSize: child ? 13 : 14, fontWeight: 500, color: temFilhoAtivo ? C.navTextActive : C.navText }}>
             {group.label}
           </span>
         </div>
 
         {/* Seta */}
         <svg
-          fill="none" stroke={C.mutedIcon} strokeWidth="2" viewBox="0 0 24 24"
+          fill="none" stroke={C.navIcon} strokeWidth="2" viewBox="0 0 24 24"
           style={{ width: 16, height: 16, flexShrink: 0, transition: 'transform 0.2s', transform: aberto ? 'rotate(90deg)' : 'rotate(0deg)' }}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -325,10 +325,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hoverItem}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 >
-                  <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="none" stroke={C.mutedIcon} strokeWidth="1.8" viewBox="0 0 24 24">
+                  <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="none" stroke={C.navIcon} strokeWidth="1.8" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: C.mutedText }}>Voltar ao painel</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: C.navText }}>Voltar ao painel</span>
                 </button>
                 <div style={{ height: 1, background: C.borderColor, margin: '4px 8px 6px' }} />
               </>

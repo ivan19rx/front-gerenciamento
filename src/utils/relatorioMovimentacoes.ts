@@ -248,7 +248,7 @@ export function gerarRelatorioMovimentacoes(
 <title>${esc(titulo)}</title>
 <style>
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #fff; }
+  body { margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #fff; font-variant-numeric: tabular-nums; }
   .report { max-width: 860px; margin: 0 auto; }
   .title { background: #404040; color: #fff; font-weight: 700; font-size: 15px; text-align: center; padding: 10px; letter-spacing: .04em; }
   .meta { font-size: 10px; color: #555; padding: 8px 2px 16px; line-height: 1.6; }

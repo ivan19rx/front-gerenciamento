@@ -113,7 +113,7 @@ export function Modal({ open, title, onClose, children, width = 480 }: ModalProp
         {/* Header (fixo no topo) */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #E2EBE7' }}>
           <h2 id={titleId} style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#1A2E25' }}>{title}</h2>
-          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9DB8AD', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#557063', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>

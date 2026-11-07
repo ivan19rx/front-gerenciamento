@@ -17,7 +17,7 @@ export function RelatorioModal({ open, onClose, onGerar }: {
 }) {
   return (
     <Modal open={open} title="Gerar relatório (PDF)" onClose={onClose} width={460}>
-      <p style={{ margin: '0 0 16px', fontSize: 14, color: '#6B8C7D' }}>
+      <p style={{ margin: '0 0 16px', fontSize: 14, color: '#557063' }}>
         O que você quer incluir no relatório?
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -42,7 +42,7 @@ export function RelatorioModal({ open, onClose, onGerar }: {
             }}
           >
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1A2E25' }}>{o.titulo}</p>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6B8C7D' }}>{o.desc}</p>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#557063' }}>{o.desc}</p>
           </button>
         ))}
       </div>

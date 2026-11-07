@@ -51,7 +51,7 @@ function mapToRow(item: FornecedorCliente): ClienteRow {
 
 function SaldoCell({ valor }: { valor: string }) {
   const num = parseFloat(valor)
-  const color = num > 0 ? '#16a34a' : num < 0 ? '#dc2626' : '#6B8C7D'
+  const color = num > 0 ? '#16a34a' : num < 0 ? '#dc2626' : '#557063'
   return <span style={{ fontWeight: 600, color }}>{num > 0 ? '+' : ''}R$ {num.toFixed(2)}</span>
 }
 
@@ -166,7 +166,7 @@ function ClienteForm({ form, errors, serverError, submitting, onChange, onSubmit
         <button
           onClick={onSubmit}
           disabled={submitting}
-          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: submitting ? 0.7 : 1 }}
+          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.navText, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: submitting ? 0.7 : 1 }}
         >
           {submitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Cadastrar'}
         </button>
@@ -261,7 +261,7 @@ function AddButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.navText, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
       onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
     >

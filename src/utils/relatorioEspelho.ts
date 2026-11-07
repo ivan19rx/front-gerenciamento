@@ -154,25 +154,26 @@ export function gerarRelatorioEspelho(ctx: EspelhoContexto): void {
 <style>
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { margin: 0; padding: 28px; background: #EEF3F1; color: #1A2E25;
-         font-family: -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; font-size: 14px; }
+         font-family: -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; font-size: 14px;
+         font-variant-numeric: tabular-nums; }
   .report { max-width: ${ctx.landscape ? '1180px' : '960px'}; margin: 0 auto; background: #EEF3F1; }
   h1 { font-size: 22px; font-weight: 600; color: #1A2E25; margin: 0; }
-  .subtitle { font-size: 14px; color: #6B8C7D; margin: 4px 0 0; }
-  .meta { font-size: 11px; color: #6B8C7D; margin: 10px 0 20px; line-height: 1.6; }
+  .subtitle { font-size: 14px; color: #557063; margin: 4px 0 0; }
+  .meta { font-size: 11px; color: #557063; margin: 10px 0 20px; line-height: 1.6; }
 
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .card { background: #fff; border: 1px solid #E2EBE7; border-radius: 10px; padding: 14px 18px; }
-  .card-lbl { font-size: 11px; font-weight: 600; color: #6B8C7D; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 6px; }
+  .card-lbl { font-size: 11px; font-weight: 600; color: #557063; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 6px; }
   .card-val { font-size: 20px; font-weight: 700; color: #1A2E25; margin: 0; }
 
   .tabela { background: #fff; border: 1px solid #E2EBE7; border-radius: 12px; overflow: hidden; }
   .tabela.plain { border: 0; border-radius: 0; }
   table { width: 100%; border-collapse: collapse; }
-  th { background: #F1F5F3; padding: 12px 16px; font-size: 12px; font-weight: 600; color: #6B8C7D;
+  th { background: #F1F5F3; padding: 12px 16px; font-size: 12px; font-weight: 600; color: #557063;
        text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #E2EBE7; white-space: nowrap; }
   td { padding: 11px 16px; font-size: 14px; color: #1A2E25; border-bottom: 1px solid #E2EBE7; vertical-align: top; }
   tbody tr:last-child td { border-bottom: 0; }
-  .vazio { text-align: center; color: #9DB8AD; padding: 20px; }
+  .vazio { text-align: center; color: #557063; padding: 20px; }
 
   .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600;
            padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
@@ -184,10 +185,10 @@ export function gerarRelatorioEspelho(ctx: EspelhoContexto): void {
                 display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .mes-left { display: flex; align-items: center; gap: 12px; }
   .mes-titulo { font-size: 15px; font-weight: 700; color: #EDE8D8; }
-  .mes-cont { font-size: 12px; color: #7FA896; background: #1E4538; padding: 2px 8px; border-radius: 999px; }
+  .mes-cont { font-size: 12px; color: #94BBA9; background: #1E4538; padding: 2px 8px; border-radius: 999px; }
   .mes-resumo { display: flex; align-items: center; gap: 22px; }
   .mes-resumo-item { text-align: right; }
-  .mr-lbl { display: block; font-size: 11px; color: #7FA896; text-transform: uppercase; letter-spacing: .04em; }
+  .mr-lbl { display: block; font-size: 11px; color: #94BBA9; text-transform: uppercase; letter-spacing: .04em; }
   .mr-val { display: block; font-size: 13px; font-weight: 700; }
 
   @media print {

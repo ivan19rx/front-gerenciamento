@@ -39,9 +39,9 @@ interface ResumoAPI {
 function Card({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #E2EBE7', borderRadius: 12, padding: '20px 24px' }}>
-      <p style={{ fontSize: 11, fontWeight: 600, color: '#6B8C7D', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>{label}</p>
+      <p style={{ fontSize: 11, fontWeight: 600, color: '#557063', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>{label}</p>
       <p style={{ fontSize: 22, fontWeight: 700, color, margin: 0 }}>{value}</p>
-      {sub && <p style={{ fontSize: 12, color: '#9DB8AD', margin: '4px 0 0' }}>{sub}</p>}
+      {sub && <p style={{ fontSize: 12, color: '#557063', margin: '4px 0 0' }}>{sub}</p>}
     </div>
   )
 }
@@ -56,7 +56,7 @@ function LancamentoRow({ item, isLast }: { item: Lancamento; isLast: boolean }) 
         </div>
         <div>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: '#1A2E25' }}>{item.fornecedorCliente.nome}</p>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9DB8AD' }}>{item.categoria.nome} · {formatDate(item.dataLancamento)}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#557063' }}>{item.categoria.nome} · {formatDate(item.dataLancamento)}</p>
         </div>
       </div>
       <span style={{ fontWeight: 700, fontSize: 14, color: isEntrada ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
@@ -78,7 +78,7 @@ function ClienteSaldoRow({ cliente, isLast }: { cliente: Cliente; isLast: boolea
         </div>
         <div style={{ minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: '#1A2E25', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cliente.nome}</p>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9DB8AD' }}>{cliente.ativo ? 'Ativo' : 'Inativo'}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#557063' }}>{cliente.ativo ? 'Ativo' : 'Inativo'}</p>
         </div>
       </div>
       <span style={{ fontWeight: 700, fontSize: 14, color: positivo ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
@@ -159,14 +159,14 @@ export default function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
             <Section title="Últimos Lançamentos">
               {ultimos.length === 0
-                ? <p style={{ color: '#9DB8AD', fontSize: 13, margin: 0 }}>Nenhum lançamento registrado.</p>
+                ? <p style={{ color: '#557063', fontSize: 13, margin: 0 }}>Nenhum lançamento registrado.</p>
                 : ultimos.map((l, i) => <LancamentoRow key={l.id} item={l} isLast={i === ultimos.length - 1} />)
               }
             </Section>
 
             <Section title="Clientes com Maior Saldo">
               {topClientes.length === 0
-                ? <p style={{ color: '#9DB8AD', fontSize: 13, margin: 0 }}>Nenhum cliente cadastrado.</p>
+                ? <p style={{ color: '#557063', fontSize: 13, margin: 0 }}>Nenhum cliente cadastrado.</p>
                 : topClientes.map((c, i) => <ClienteSaldoRow key={c.id} cliente={c} isLast={i === topClientes.length - 1} />)
               }
             </Section>

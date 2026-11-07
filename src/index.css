@@ -18,3 +18,8 @@
 .mes-header:hover {
   background-color: #1E4A38;
 }
+/* Números de largura fixa em todo o app: valores, datas e totais ficam
+   alinhados em colunas (tabelas, cards, listas). */
+body {
+  font-variant-numeric: tabular-nums;
+}

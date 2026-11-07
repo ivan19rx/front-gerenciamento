@@ -277,7 +277,7 @@ function PaginationBtn({ children, onClick, active, disabled, title }: {
         width: 32, height: 32, borderRadius: 8,
         border: `1px solid ${active ? C.activeIcon : C.tableBorder}`,
         background: active ? C.activeItem : 'transparent',
-        color: disabled ? C.mutedIcon : active ? C.activeIcon : C.mutedText,
+        color: disabled ? C.mutedIcon : active ? C.activeIcon : C.tableTextMuted,
         cursor: disabled ? 'default' : 'pointer',
         fontSize: 13, fontWeight: active ? 600 : 400,
         display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -79,7 +79,7 @@ export function EmpresaSwitcher({ atual, onEscolher }: { atual: EmpresaInfo; onE
               onMouseLeave={ev => { if (!selecionada) (ev.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
               <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: e.ativo ? C.activeIcon : C.mutedBadgeText }} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: selecionada ? C.activeText : C.mutedText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: selecionada ? C.navTextActive : C.navText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {nomeDe(e)}
               </span>
               {selecionada && (

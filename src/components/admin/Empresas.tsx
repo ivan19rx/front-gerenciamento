@@ -110,7 +110,7 @@ function RowActions({ onAccess, onEdit, onDelete }: { onAccess: () => void; onEd
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
       <button onClick={onAccess}
-        style={{ display: 'flex', alignItems: 'center', gap: 5, background: C.activeItem, border: 'none', borderRadius: 6, color: C.activeIcon, fontSize: 12, fontWeight: 600, padding: '5px 12px', cursor: 'pointer', transition: 'opacity 0.15s' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 5, background: C.activeItem, border: 'none', borderRadius: 6, color: C.navText, fontSize: 12, fontWeight: 600, padding: '5px 12px', cursor: 'pointer', transition: 'opacity 0.15s' }}
         onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
         onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
       >
@@ -179,7 +179,7 @@ function EmpresaForm({ form, errors, serverError, submitting, onChange, onSubmit
 
       {/* Divisor */}
       <div style={{ height: 1, background: '#E2EBE7', margin: '8px 0 16px' }} />
-      <p style={{ fontSize: 11, fontWeight: 600, color: '#6B8C7D', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 14px' }}>
+      <p style={{ fontSize: 11, fontWeight: 600, color: '#557063', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 14px' }}>
         Acesso ao sistema
       </p>
 
@@ -207,7 +207,7 @@ function EmpresaForm({ form, errors, serverError, submitting, onChange, onSubmit
           Cancelar
         </button>
         <button onClick={onSubmit} disabled={submitting}
-          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: submitting ? 0.7 : 1 }}>
+          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.navText, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: submitting ? 0.7 : 1 }}>
           {submitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Cadastrar empresa'}
         </button>
       </div>
@@ -218,7 +218,7 @@ function EmpresaForm({ form, errors, serverError, submitting, onChange, onSubmit
 function AddButton({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.activeIcon, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: C.activeItem, color: C.navText, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.15s' }}
       onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
     >
@@ -458,7 +458,7 @@ export default function Empresas() {
         ) : empresasFiltradas.length === 0 ? (
           <div style={{ background: '#F1F5F3', border: '1px solid #E2EBE7', borderRadius: 10, padding: '40px 20px', textAlign: 'center' }}>
             <p style={{ fontSize: 32, margin: '0 0 8px' }}>🔍</p>
-            <p style={{ color: '#6B8C7D', fontSize: 14, margin: 0 }}>
+            <p style={{ color: '#557063', fontSize: 14, margin: 0 }}>
               {search ? `Nenhuma empresa encontrada para "${search}".` : 'Nenhuma empresa cadastrada ainda.'}
             </p>
           </div>
