@@ -21,6 +21,11 @@ const navItems = [
     path: '/admin/registros-login',
     icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zm2 0v2h6V3" />,
   },
+  {
+    label: 'Registros de requisições',
+    path: '/admin/registros-requisicoes',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4l3-8 4 16 3-8h4" />,
+  },
 ]
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
