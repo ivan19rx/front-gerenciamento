@@ -237,6 +237,21 @@ export default function RegistrosRequisicoes() {
     >
       <EstilosRegistros />
 
+      {/* O backend não grava consultas comuns (economia de espaço) */}
+      <div role="note" style={{
+        display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, padding: '10px 14px',
+        background: '#F1F7F4', border: `1px solid ${C.tableBorder}`, borderRadius: 10,
+        fontSize: 13, lineHeight: 1.5, color: C.tableTextMuted,
+      }}>
+        <svg width="16" height="16" fill="none" stroke={C.sidebarBg} strokeWidth="2" viewBox="0 0 24 24" aria-hidden style={{ flexShrink: 0, marginTop: 2 }}>
+          <circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 11v5M12 8h.01" />
+        </svg>
+        <span>
+          Para economizar espaço, <strong style={{ color: C.tableText, fontWeight: 600 }}>consultas que deram certo em menos de 1 segundo não são registradas</strong>.
+          Aparecem aqui todas as alterações (criar, editar, excluir), as consultas com erro (como acesso negado ou página inexistente) e as consultas lentas.
+        </span>
+      </div>
+
       {/* Resumo */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <Card flex="1 1 120px" rotulo="Requisições" valor={data?.total ?? 0} />
