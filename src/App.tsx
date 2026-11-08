@@ -13,6 +13,7 @@ import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import { AdminLayout } from './pages/admin/AdminLayout'
 import Empresas from './components/admin/Empresas'
+import RegistrosLogin from './pages/admin/RegistrosLogin'
 import { RequireEmpresaView, RequireAdmin, RedirectIfAuthed } from './auth/guards'
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
         <Route element={<RequireAdmin />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Empresas />} />
+            <Route path="registros-login" element={<RegistrosLogin />} />
           </Route>
         </Route>
 

@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../config'
 import { fetchComReenvio } from '../auth/api'
 import { authStore } from '../auth/store'
 import { getErrorMessage } from '../utils/format'
+import { dicasDoDispositivo } from '../utils/dispositivo'
 
 type Modo = 'EMPRESA' | 'ADMIN'
 
@@ -120,7 +121,9 @@ export default function Login() {
     setEnviando(true)
     try {
       const path = isAdmin ? '/auth/admin/login' : '/auth/login'
-      const body = { identificador: identificador.trim(), senha }
+      // dados do aparelho para o histórico de logins (visto pelo admin)
+      const dispositivo = await dicasDoDispositivo()
+      const body = { identificador: identificador.trim(), senha, dispositivo }
 
       const res = await fetchComReenvio(`${API_BASE_URL}${path}`, {
         method: 'POST',

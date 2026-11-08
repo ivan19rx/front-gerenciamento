@@ -16,6 +16,11 @@ const navItems = [
     path: '/admin',
     icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01" />,
   },
+  {
+    label: 'Registros de login',
+    path: '/admin/registros-login',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zm2 0v2h6V3" />,
+  },
 ]
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
@@ -57,14 +62,17 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
             display: 'block',
           }}
         />
+        {/* Só em tablet/celular, como na barra lateral das empresas. */}
         <button
           onClick={onClose}
+          aria-label="Fechar menu"
+          className="flex lg:hidden"
           style={{
             position: 'absolute', top: 10, right: 10,
             background: 'rgba(0,0,0,0.3)', border: 'none',
             cursor: 'pointer', color: '#EDE8D8',
             padding: 6, borderRadius: 6,
-            display: 'flex', alignItems: 'center',
+            alignItems: 'center',
           }}
         >
           <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
