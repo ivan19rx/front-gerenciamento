@@ -274,7 +274,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Logo banner full-width + botão fechar */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <img
-          src="/logo.jpeg"
+          src="/logo.svg"
           alt="Logo SL"
           style={{
             width: '100%',

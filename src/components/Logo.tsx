@@ -5,7 +5,7 @@ interface LogoProps {
 export function Logo({ size = 48 }: LogoProps) {
   return (
     <img
-      src="/logo.jpeg"
+      src="/logo.svg"
       alt="Logo SL"
       style={{
         height: size,
