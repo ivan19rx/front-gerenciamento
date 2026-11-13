@@ -19,7 +19,8 @@ export const C = {
   sectionLabel:    '#94BBA9',
   gold:            '#C9B06A',
   userText:        '#C9B06A',
-  topbarBg:        '#004147',
+  // mais escura que a barra lateral, para as duas não se confundirem
+  topbarBg:        '#002A2E',
   tableBg:         '#FFFFFF',
   tableRowHover:   '#F6FAF8',
   tableHeader:     '#F1F5F3',
