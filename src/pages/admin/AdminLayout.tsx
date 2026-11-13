@@ -45,7 +45,7 @@ export function AdminLayout() {
           )}
         </header>
 
-        <main style={{ flex: 1, background: C.mainBg, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column' }}>
+        <main className="sem-scrollbar" style={{ flex: 1, background: C.mainBg, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column' }}>
           <Outlet />
         </main>
       </div>

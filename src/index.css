@@ -34,3 +34,12 @@ body {
   --color-muted-foreground: #557063;
   --color-border: #E2EBE7;
 }
+
+/* Área de conteúdo: rola normalmente (roda do mouse, toque, teclado), mas sem
+   a barra de rolagem visível na lateral direita. */
+.sem-scrollbar {
+  scrollbar-width: none;
+}
+.sem-scrollbar::-webkit-scrollbar {
+  display: none;
+}

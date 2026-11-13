@@ -80,7 +80,7 @@ export function Layout() {
         </header>
 
         {/* Page content via Outlet */}
-        <main style={{ flex: 1, background: C.mainBg, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column' }}>
+        <main className="sem-scrollbar" style={{ flex: 1, background: C.mainBg, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column' }}>
           {/* key por empresa: ao alternar de empresa, a página é remontada e
               descarta estado local (filtros, seleção) da empresa anterior. */}
           <Outlet key={impersonando?.id ?? 'propria'} />
