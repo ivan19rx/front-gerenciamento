@@ -1,3 +1,5 @@
+import { authStore } from '../auth/store'
+
 // Rodapé das janelas de relatório.
 //
 // O relatório abre como uma prévia: a pessoa confere os dados e só então
@@ -30,3 +32,24 @@ export const BARRA_IMPRIMIR = `
     </div>
   </div>
   <script>window.onload = function () { window.focus(); }</script>`
+
+// ── "Gerado por" ────────────────────────────────────────────────────────────
+// Quem está gerando o relatório, para aparecer no cabeçalho:
+//  - login de empresa → nome fantasia (ou razão social) da empresa
+//  - administrador    → "Administrador (e-mail)", pois o admin não tem nome
+
+const escHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+export function nomeDoUsuario(): string | null {
+  const { role, empresa, admin } = authStore.getState()
+  if (role === 'EMPRESA' && empresa) return empresa.nomeFantasia || empresa.razaoSocial
+  if (role === 'ADMIN' && admin) return `Administrador (${admin.email})`
+  return null
+}
+
+// Trecho pronto para a linha de informações: " · Gerado por <b>Nome</b>".
+export function geradoPorHtml(): string {
+  const nome = nomeDoUsuario()
+  return nome ? ` &nbsp;·&nbsp; Gerado por <b>${escHtml(nome)}</b>` : ''
+}

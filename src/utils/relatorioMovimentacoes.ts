@@ -2,7 +2,7 @@
 // (salvar como PDF) — sem dependências. O escopo define o conteúdo:
 //   ENTRADA → só entradas (compras)   SAIDA → só saídas (vendas)   GERAL → ambos.
 
-import { BARRA_IMPRIMIR } from './relatorioPrevia'
+import { BARRA_IMPRIMIR, geradoPorHtml } from './relatorioPrevia'
 import { moeda, parseDataLocal } from './format'
 import { emCentavos, somaReais, percentuaisInteiros } from './numero'
 import { UNIDADE_LABEL, type UnidadeMedida } from './unidades'
@@ -98,7 +98,7 @@ function metaLinha(ctx: RelatorioMovContexto): string {
   const agora = new Date().toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
-  return `${partes.join(' &nbsp;·&nbsp; ')} &nbsp;·&nbsp; Gerado em <b>${agora}</b>`
+  return `${partes.join(' &nbsp;·&nbsp; ')} &nbsp;·&nbsp; Gerado em <b>${agora}</b>${geradoPorHtml()}`
 }
 
 // ── Construtores de linhas/tabelas ─────────────────────────────────────────────

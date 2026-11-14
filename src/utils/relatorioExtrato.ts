@@ -3,7 +3,7 @@
 // Abre uma janela com o HTML formatado e dispara a impressão, permitindo que o
 // usuário salve como PDF — sem dependências externas.
 
-import { BARRA_IMPRIMIR } from './relatorioPrevia'
+import { BARRA_IMPRIMIR, geradoPorHtml } from './relatorioPrevia'
 import { moeda, parseDataLocal } from './format'
 import { emCentavos, somaReais, percentuaisInteiros } from './numero'
 
@@ -92,7 +92,7 @@ function metaLinha(ctx: RelatorioContexto): string {
   const agora = new Date().toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
-  return `${partes.join(' &nbsp;·&nbsp; ')} &nbsp;·&nbsp; Gerado em <b>${agora}</b>`
+  return `${partes.join(' &nbsp;·&nbsp; ')} &nbsp;·&nbsp; Gerado em <b>${agora}</b>${geradoPorHtml()}`
 }
 
 // ── Construtores de linhas ─────────────────────────────────────────────────────

@@ -6,7 +6,7 @@
 //   • tabela única   → `cards` + `colunas` + `linhas`   (Extrato, Movimentações)
 //   • seções por mês → `secoes`                          (Lançamentos / Financeiro)
 
-import { BARRA_IMPRIMIR } from './relatorioPrevia'
+import { BARRA_IMPRIMIR, geradoPorHtml } from './relatorioPrevia'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ function metaLinha(meta?: string): string {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
   const base = meta?.trim() ? `${meta} &nbsp;·&nbsp; ` : ''
-  return `${base}Gerado em <b>${agora}</b>`
+  return `${base}Gerado em <b>${agora}</b>${geradoPorHtml()}`
 }
 
 function celulaHtml(c: EspelhoCelula): string {
