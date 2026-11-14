@@ -3,6 +3,7 @@
 // Abre uma janela com o HTML formatado e dispara a impressão, permitindo que o
 // usuário salve como PDF — sem dependências externas.
 
+import { BARRA_IMPRIMIR } from './relatorioPrevia'
 import { moeda, parseDataLocal } from './format'
 import { emCentavos, somaReais, percentuaisInteiros } from './numero'
 
@@ -238,7 +239,7 @@ export function gerarRelatorioExtrato(
     <div class="meta">${metaLinha(contexto)}</div>
     ${grid}
   </div>
-  <script>window.onload = function () { window.focus(); window.print(); }</script>
+  ${BARRA_IMPRIMIR}
 </body>
 </html>`
 

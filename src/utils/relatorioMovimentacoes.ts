@@ -2,6 +2,7 @@
 // (salvar como PDF) — sem dependências. O escopo define o conteúdo:
 //   ENTRADA → só entradas (compras)   SAIDA → só saídas (vendas)   GERAL → ambos.
 
+import { BARRA_IMPRIMIR } from './relatorioPrevia'
 import { moeda, parseDataLocal } from './format'
 import { emCentavos, somaReais, percentuaisInteiros } from './numero'
 import { UNIDADE_LABEL, type UnidadeMedida } from './unidades'
@@ -266,7 +267,7 @@ export function gerarRelatorioMovimentacoes(
     <div class="meta">${metaLinha(contexto)}</div>
     ${corpo}
   </div>
-  <script>window.onload = function () { window.focus(); window.print(); }</script>
+  ${BARRA_IMPRIMIR}
 </body>
 </html>`
 

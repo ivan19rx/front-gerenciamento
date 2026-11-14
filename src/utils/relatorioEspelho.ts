@@ -1,10 +1,12 @@
-// Gera um "espelho" (cópia) da tela atual em PDF, via window.open + window.print,
+// Gera um "espelho" (cópia) da tela atual em PDF, via window.open (prévia com botão Imprimir),
 // reproduzindo a estilização do app: cabeçalho da página, cards de resumo e a
 // tabela — exatamente como são exibidos na tela. Sem dependências externas.
 //
 // Dois modos de corpo:
 //   • tabela única   → `cards` + `colunas` + `linhas`   (Extrato, Movimentações)
 //   • seções por mês → `secoes`                          (Lançamentos / Financeiro)
+
+import { BARRA_IMPRIMIR } from './relatorioPrevia'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -209,7 +211,7 @@ export function gerarRelatorioEspelho(ctx: EspelhoContexto): void {
     ${corpo}
     ${ctx.anexoHtml ?? ''}
   </div>
-  <script>window.onload = function () { window.focus(); window.print(); }</script>
+  ${BARRA_IMPRIMIR}
 </body>
 </html>`
 
