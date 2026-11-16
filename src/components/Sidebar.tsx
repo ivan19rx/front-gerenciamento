@@ -16,13 +16,15 @@ function iniciais(nome: string): string {
 
 
 
-interface NavItem {
+export interface NavItem {
   label: string
   path: string
   icon: React.ReactNode
+  // ativo só na rota exata (ex: "/admin", que não deve acender em "/admin/...")
+  end?: boolean
 }
 
-interface NavGroup {
+export interface NavGroup {
   label: string
   icon: React.ReactNode
   children: NavChild[]
@@ -129,13 +131,13 @@ function renderNode(node: NavChild, depth: number, key: React.Key) {
 }
 
 
-function NavLeaf({ item, depth }: { item: NavItem; depth: number }) {
+export function NavLeaf({ item, depth }: { item: NavItem; depth: number }) {
   const child = depth > 0
   const pad = padLeftFor(depth)
   return (
     <NavLink
       to={item.path}
-      end={item.path === '/'}
+      end={item.end ?? item.path === '/'}
       style={({ isActive }) => ({
         display: 'flex',
         alignItems: 'center',
@@ -169,7 +171,7 @@ function NavLeaf({ item, depth }: { item: NavItem; depth: number }) {
 }
 
 
-function NavGroupBlock({ group, depth }: { group: NavGroup; depth: number }) {
+export function NavGroupBlock({ group, depth }: { group: NavGroup; depth: number }) {
   const location = useLocation()
   const temFilhoAtivo = grupoTemAtivo(group, location.pathname)
   const [aberto, setAberto] = useState(temFilhoAtivo)

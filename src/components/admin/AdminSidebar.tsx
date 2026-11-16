@@ -1,32 +1,40 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { C } from '../../theme'
 import { useAuth } from '../../auth/useAuth'
 import { authStore } from '../../auth/store'
 import { SessionTime } from '../../auth/SessionTime'
+import { NavLeaf, NavGroupBlock, type NavItem, type NavGroup } from '../Sidebar'
 
 interface AdminSidebarProps {
   open: boolean
   onClose: () => void
 }
 
-const navItems = [
-  {
-    label: 'Empresas',
-    path: '/admin',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01" />,
-  },
-  {
-    label: 'Registros de login',
-    path: '/admin/registros-login',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zm2 0v2h6V3" />,
-  },
-  {
-    label: 'Registros de requisições',
-    path: '/admin/registros-requisicoes',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4l3-8 4 16 3-8h4" />,
-  },
-]
+const empresas: NavItem = {
+  label: 'Empresas',
+  path: '/admin',
+  end: true,
+  icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01" />,
+}
+
+// Históricos do sistema, agrupados no menu (mesmo estilo dos grupos da empresa).
+const logs: NavGroup = {
+  label: 'Logs',
+  icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
+  children: [
+    {
+      label: 'Logins',
+      path: '/admin/registros-login',
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zm2 0v2h6V3" />,
+    },
+    {
+      label: 'Requisições',
+      path: '/admin/registros-requisicoes',
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4l3-8 4 16 3-8h4" />,
+    },
+  ],
+}
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -101,38 +109,8 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
 
       {/* Nav */}
       <nav style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {navItems.map(item => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end
-            style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '10px 12px', borderRadius: 8, textDecoration: 'none',
-              background: isActive ? C.activeItem : 'transparent',
-              transition: 'background 0.15s',
-            })}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLElement
-              if (!el.getAttribute('data-active')) el.style.background = C.hoverItem
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement
-              if (!el.getAttribute('data-active')) el.style.background = 'transparent'
-            }}
-          >
-            {({ isActive }) => (
-              <>
-                <svg fill="none" stroke={isActive ? C.activeIcon : C.navIcon} strokeWidth="1.8" viewBox="0 0 24 24" style={{ width: 20, height: 20, flexShrink: 0 }}>
-                  {item.icon}
-                </svg>
-                <span style={{ fontSize: 14, fontWeight: 500, color: isActive ? C.navTextActive : C.navText }}>
-                  {item.label}
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
+        <NavLeaf item={empresas} depth={0} />
+        <NavGroupBlock group={logs} depth={0} />
       </nav>
 
       <div style={{ flex: 1 }} />
